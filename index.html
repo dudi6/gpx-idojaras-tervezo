@@ -1,0 +1,3096 @@
+<!DOCTYPE html>
+<html lang="hu">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>GPX Időjárás Tervező</title>
+
+  <!-- Google Fonts: Inter -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+
+  <!-- Leaflet.js CSS -->
+  <link
+    rel="stylesheet"
+    href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+    integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY="
+    crossorigin=""
+  />
+
+  <!-- Beágyazott teljes stíluslap (Tailwind CDN nélkül, nulla konzol-figyelmeztetéssel) -->
+  <style>
+    /* === Alap CSS Reset (Tailwind Preflight kiváltása) === */
+    *, ::before, ::after {
+      box-sizing: border-box;
+      border-width: 0;
+      border-style: solid;
+      border-color: #e2e8f0;
+    }
+    html, body {
+      height: 100%;
+      margin: 0;
+      padding: 0;
+      font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      line-height: 1.5;
+      -webkit-text-size-adjust: 100%;
+    }
+    h1, h2, h3, p { margin: 0; }
+    button, input, select {
+      font-family: inherit;
+      font-size: 100%;
+      line-height: inherit;
+      color: inherit;
+      margin: 0;
+      padding: 0;
+    }
+    button {
+      background-color: transparent;
+      background-image: none;
+      cursor: pointer;
+    }
+    button:disabled { cursor: not-allowed; }
+    svg { display: block; vertical-align: middle; }
+    @keyframes tw-spin {
+      from { transform: rotate(0deg); }
+      to { transform: rotate(360deg); }
+    }
+
+    /* === Beágyazott segédosztályok (Tailwind CDN helyett) === */
+    .-bottom-0\.5 { bottom: -0.125rem; }
+    .-right-0\.5 { right: -0.125rem; }
+    .absolute { position: absolute; }
+    .animate-spin { animation: tw-spin 1s linear infinite; }
+    .backdrop-blur-sm { backdrop-filter: blur(4px); -webkit-backdrop-filter: blur(4px); }
+    .bg-amber-400 { background-color: rgb(251 191 36); }
+    .bg-amber-50 { background-color: rgb(255 251 235); }
+    .bg-amber-50\/40 { background-color: rgb(255 251 235 / 0.4); }
+    .bg-amber-50\/70 { background-color: rgb(255 251 235 / 0.7); }
+    .bg-amber-50\/90 { background-color: rgb(255 251 235 / 0.9); }
+    .bg-amber-500 { background-color: rgb(245 158 11); }
+    .bg-amber-600 { background-color: rgb(217 119 6); }
+    .bg-emerald-50 { background-color: rgb(236 253 245); }
+    .bg-emerald-500 { background-color: rgb(16 185 129); }
+    .bg-gradient-to-br { background-image: linear-gradient(to bottom right, var(--tw-gradient-from, transparent), var(--tw-gradient-to, transparent)); }
+    .bg-gradient-to-r { background-image: linear-gradient(to right, var(--tw-gradient-from, transparent), var(--tw-gradient-to, transparent)); }
+    .bg-orange-50 { background-color: rgb(255 247 237); }
+    .bg-orange-500 { background-color: rgb(249 115 22); }
+    .bg-rose-50 { background-color: rgb(255 241 242); }
+    .bg-rose-500 { background-color: rgb(244 63 94); }
+    .bg-pink-50 { background-color: rgb(253 242 248); }
+    .bg-pink-500 { background-color: rgb(236 72 153); }
+    .bg-cyan-50 { background-color: rgb(236 254 255); }
+    .bg-cyan-500 { background-color: rgb(6 182 212); }
+    .bg-skyroute-50 { background-color: rgb(240 249 255); }
+    .bg-skyroute-50\/70 { background-color: rgb(240 249 255 / 0.7); }
+    .bg-skyroute-600 { background-color: rgb(2 132 199); }
+    .bg-slate-100 { background-color: rgb(241 245 249); }
+    .bg-slate-200 { background-color: rgb(226 232 240); }
+    .bg-slate-50 { background-color: rgb(248 250 252); }
+    .bg-slate-50\/70 { background-color: rgb(248 250 252 / 0.7); }
+    .bg-trail-50 { background-color: rgb(236 253 245); }
+    .bg-white { background-color: rgb(255 255 255); }
+    .bg-white\/95 { background-color: rgb(255 255 255 / 0.95); }
+    .block { display: block; }
+    .border { border-width: 1px; }
+    .border-2 { border-width: 2px; }
+    .border-amber-200 { border-color: rgb(253 230 138); }
+    .border-amber-200\/80 { border-color: rgb(253 230 138 / 0.8); }
+    .border-amber-300 { border-color: rgb(252 211 77); }
+    .border-b { border-bottom-width: 1px; }
+    .border-dashed { border-style: dashed; }
+    .border-emerald-200 { border-color: rgb(167 243 208); }
+    .border-emerald-300 { border-color: rgb(110 231 183); }
+    .border-orange-200 { border-color: rgb(254 215 170); }
+    .border-orange-300 { border-color: rgb(253 186 116); }
+    .border-r { border-right-width: 1px; }
+    .border-rose-200 { border-color: rgb(254 205 211); }
+    .border-pink-300 { border-color: rgb(249 168 212); }
+    .border-cyan-300 { border-color: rgb(103 232 249); }
+    .border-skyroute-100 { border-color: rgb(224 242 254); }
+    .border-skyroute-200 { border-color: rgb(186 230 253); }
+    .border-skyroute-500 { border-color: rgb(14 165 233); }
+    .border-slate-100 { border-color: rgb(241 245 249); }
+    .border-slate-200 { border-color: rgb(226 232 240); }
+    .border-slate-200\/80 { border-color: rgb(226 232 240 / 0.8); }
+    .border-slate-300 { border-color: rgb(203 213 225); }
+    .border-slate-800 { border-color: rgb(30 41 59); }
+    .border-t { border-top-width: 1px; }
+    .border-trail-100 { border-color: rgb(209 250 229); }
+    .border-trail-200 { border-color: rgb(167 243 208); }
+    .border-trail-500 { border-color: rgb(16 185 129); }
+    .border-white { border-color: rgb(255 255 255); }
+    .bottom-5 { bottom: 1.25rem; }
+    .cursor-pointer { cursor: pointer; }
+    .flex { display: flex; }
+    .flex-1 { flex: 1 1 0%; }
+    .flex-col { flex-direction: column; }
+    .flex-wrap { flex-wrap: wrap; }
+    .font-bold { font-weight: 700; }
+    .font-medium { font-weight: 500; }
+    .font-semibold { font-weight: 600; }
+    .from-skyroute-50\/70 { --tw-gradient-from: rgb(240 249 255 / 0.7); }
+    .from-skyroute-600 { --tw-gradient-from: rgb(2 132 199); }
+    .gap-1 { gap: 0.25rem; }
+    .gap-1\.5 { gap: 0.375rem; }
+    .gap-2 { gap: 0.5rem; }
+    .gap-2\.5 { gap: 0.625rem; }
+    .gap-3 { gap: 0.75rem; }
+    .grid { display: grid; }
+    .grid-cols-2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .h-1 { height: 0.25rem; }
+    .h-10 { height: 2.5rem; }
+    .h-2 { height: 0.5rem; }
+    .h-2\.5 { height: 0.625rem; }
+    .h-3 { height: 0.75rem; }
+    .h-3\.5 { height: 0.875rem; }
+    .h-4 { height: 1rem; }
+    .h-5 { height: 1.25rem; }
+    .h-6 { height: 1.5rem; }
+    .h-7 { height: 1.75rem; }
+    .h-8 { height: 2rem; }
+    .h-full { height: 100%; }
+    .h-screen { height: 100vh; }
+    .inline-block { display: inline-block; }
+    .inline-flex { display: inline-flex; }
+    .italic { font-style: italic; }
+    .items-center { align-items: center; }
+    .items-start { align-items: flex-start; }
+    .justify-between { justify-content: space-between; }
+    .justify-center { justify-content: center; }
+    .leading-none { line-height: 1; }
+    .leading-relaxed { line-height: 1.625; }
+    .leading-snug { line-height: 1.375; }
+    .leading-tight { line-height: 1.25; }
+    .left-4 { left: 1rem; }
+    .max-w-\[200px\] { max-width: 200px; }
+    .max-w-\[calc\(100\%-60px\)\] { max-width: calc(100% - 60px); }
+    .mb-0\.5 { margin-bottom: 0.125rem; }
+    .mb-1 { margin-bottom: 0.25rem; }
+    .mb-2 { margin-bottom: 0.5rem; }
+    .min-h-0 { min-height: 0px; }
+    .min-w-0 { min-width: 0px; }
+    .mt-0\.5 { margin-top: 0.125rem; }
+    .mx-auto { margin-left: auto; margin-right: auto; }
+    .opacity-25 { opacity: 0.25; }
+    .opacity-70 { opacity: 0.7; }
+    .opacity-75 { opacity: 0.75; }
+    .opacity-85 { opacity: 0.85; }
+    .opacity-90 { opacity: 0.9; }
+    .overflow-hidden { overflow: hidden; }
+    .overflow-y-auto { overflow-y: auto; }
+    .p-0\.5 { padding: 0.125rem; }
+    .p-1 { padding: 0.25rem; }
+    .p-1\.5 { padding: 0.375rem; }
+    .p-2 { padding: 0.5rem; }
+    .p-2\.5 { padding: 0.625rem; }
+    .p-3 { padding: 0.75rem; }
+    .p-3\.5 { padding: 0.875rem; }
+    .p-4 { padding: 1rem; }
+    .pb-2 { padding-bottom: 0.5rem; }
+    .pb-4 { padding-bottom: 1rem; }
+    .pt-1 { padding-top: 0.25rem; }
+    .pt-2 { padding-top: 0.5rem; }
+    .pt-3 { padding-top: 0.75rem; }
+    .px-1\.5 { padding-left: 0.375rem; padding-right: 0.375rem; }
+    .px-2 { padding-left: 0.5rem; padding-right: 0.5rem; }
+    .px-2\.5 { padding-left: 0.625rem; padding-right: 0.625rem; }
+    .px-3 { padding-left: 0.75rem; padding-right: 0.75rem; }
+    .px-3\.5 { padding-left: 0.875rem; padding-right: 0.875rem; }
+    .px-4 { padding-left: 1rem; padding-right: 1rem; }
+    .px-5 { padding-left: 1.25rem; padding-right: 1.25rem; }
+    .py-0\.5 { padding-top: 0.125rem; padding-bottom: 0.125rem; }
+    .py-1 { padding-top: 0.25rem; padding-bottom: 0.25rem; }
+    .py-1\.5 { padding-top: 0.375rem; padding-bottom: 0.375rem; }
+    .py-2 { padding-top: 0.5rem; padding-bottom: 0.5rem; }
+    .py-2\.5 { padding-top: 0.625rem; padding-bottom: 0.625rem; }
+    .py-3 { padding-top: 0.75rem; padding-bottom: 0.75rem; }
+    .py-4 { padding-top: 1rem; padding-bottom: 1rem; }
+    .relative { position: relative; }
+    .right-3 { right: 0.75rem; }
+    .rounded { border-radius: 0.25rem; }
+    .rounded-full { border-radius: 9999px; }
+    .rounded-lg { border-radius: 0.5rem; }
+    .rounded-md { border-radius: 0.375rem; }
+    .rounded-xl { border-radius: 0.75rem; }
+    .shadow-lg { box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1); }
+    .shadow-md { box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1); }
+    .shadow-sm { box-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.05); }
+    .shrink-0 { flex-shrink: 0; }
+    .space-y-0\.5 > :not([hidden]) ~ :not([hidden]) { margin-top: 0.125rem; }
+    .space-y-1\.5 > :not([hidden]) ~ :not([hidden]) { margin-top: 0.375rem; }
+    .space-y-2 > :not([hidden]) ~ :not([hidden]) { margin-top: 0.5rem; }
+    .space-y-2\.5 > :not([hidden]) ~ :not([hidden]) { margin-top: 0.625rem; }
+    .space-y-3 > :not([hidden]) ~ :not([hidden]) { margin-top: 0.75rem; }
+    .space-y-5 > :not([hidden]) ~ :not([hidden]) { margin-top: 1.25rem; }
+    .text-2xl { font-size: 1.5rem; line-height: 2rem; }
+    .text-\[10px\] { font-size: 10px; }
+    .text-\[11px\] { font-size: 11px; }
+    .text-amber-700 { color: rgb(180 83 9); }
+    .text-amber-800 { color: rgb(146 64 14); }
+    .text-amber-900 { color: rgb(120 53 15); }
+    .text-base { font-size: 1rem; line-height: 1.5rem; }
+    .text-center { text-align: center; }
+    .text-emerald-700 { color: rgb(4 120 87); }
+    .text-emerald-800 { color: rgb(6 95 70); }
+    .text-left { text-align: left; }
+    .text-lg { font-size: 1.125rem; line-height: 1.75rem; }
+    .text-orange-700 { color: rgb(194 65 12); }
+    .text-orange-800 { color: rgb(154 52 18); }
+    .text-right { text-align: right; }
+    .text-rose-700 { color: rgb(190 18 60); }
+    .text-rose-800 { color: rgb(159 18 57); }
+    .text-rose-900 { color: rgb(136 19 55); }
+    .text-pink-800 { color: rgb(157 23 77); }
+    .text-cyan-800 { color: rgb(21 94 117); }
+    .text-skyroute-600 { color: rgb(2 132 199); }
+    .text-skyroute-700 { color: rgb(3 105 161); }
+    .text-skyroute-900 { color: rgb(12 74 110); }
+    .text-slate-400 { color: rgb(148 163 184); }
+    .text-slate-500 { color: rgb(100 116 139); }
+    .text-slate-600 { color: rgb(71 85 105); }
+    .text-slate-700 { color: rgb(51 65 85); }
+    .text-slate-800 { color: rgb(30 41 59); }
+    .text-slate-900 { color: rgb(15 23 42); }
+    .text-sm { font-size: 0.875rem; line-height: 1.25rem; }
+    .text-trail-700 { color: rgb(4 120 87); }
+    .text-trail-900 { color: rgb(6 78 59); }
+    .text-white { color: rgb(255 255 255); }
+    .text-xs { font-size: 0.75rem; line-height: 1rem; }
+    .to-trail-50\/70 { --tw-gradient-to: rgb(236 253 245 / 0.7); }
+    .to-trail-600 { --tw-gradient-to: rgb(5 150 105); }
+    .top-3 { top: 0.75rem; }
+    .tracking-tight { letter-spacing: -0.025em; }
+    .tracking-wide { letter-spacing: 0.025em; }
+    .tracking-wider { letter-spacing: 0.05em; }
+    .transition { transition-property: color, background-color, border-color, text-decoration-color, fill, stroke, opacity, box-shadow, transform, filter, backdrop-filter; transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1); transition-duration: 150ms; }
+    .truncate { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .uppercase { text-transform: uppercase; }
+    .w-10 { width: 2.5rem; }
+    .w-2 { width: 0.5rem; }
+    .w-2\.5 { width: 0.625rem; }
+    .w-20 { width: 5rem; }
+    .w-3 { width: 0.75rem; }
+    .w-3\.5 { width: 0.875rem; }
+    .w-4 { width: 1rem; }
+    .w-5 { width: 1.25rem; }
+    .w-6 { width: 1.5rem; }
+    .w-7 { width: 1.75rem; }
+    .w-8 { width: 2rem; }
+    .w-full { width: 100%; }
+    .whitespace-nowrap { white-space: nowrap; }
+    .z-10 { z-index: 10; }
+    .z-20 { z-index: 20; }
+    .z-30 { z-index: 30; }
+    .z-\[400\] { z-index: 400; }
+    .disabled\:cursor-not-allowed:disabled { cursor: not-allowed; }
+    .disabled\:from-slate-300:disabled { --tw-gradient-from: rgb(203 213 225); }
+    .disabled\:to-slate-300:disabled { --tw-gradient-to: rgb(203 213 225); }
+    .focus\:border-skyroute-500:focus { border-color: rgb(14 165 233); }
+    .focus\:outline-none:focus { outline: 2px solid transparent; outline-offset: 2px; }
+    .focus\:ring-2:focus { box-shadow: 0 0 0 2px var(--tw-ring-color, rgb(14 165 233 / 0.5)); }
+    .focus\:ring-amber-400:focus { --tw-ring-color: rgb(251 191 36); }
+    .focus\:ring-skyroute-500:focus { --tw-ring-color: rgb(14 165 233); }
+    .group:hover .group-hover\:scale-105 { transform: scale(1.05); }
+    .hover\:bg-amber-100\/70:hover { background-color: rgb(254 243 199 / 0.7); }
+    .hover\:bg-amber-600:hover { background-color: rgb(217 119 6); }
+    .hover\:bg-rose-50:hover { background-color: rgb(255 241 242); }
+    .hover\:bg-skyroute-100:hover { background-color: rgb(224 242 254); }
+    .hover\:bg-skyroute-50\/40:hover { background-color: rgb(240 249 255 / 0.4); }
+    .hover\:bg-slate-200:hover { background-color: rgb(226 232 240); }
+    .hover\:bg-trail-100:hover { background-color: rgb(209 250 229); }
+    .hover\:border-skyroute-300:hover { border-color: rgb(125 211 252); }
+    .hover\:border-skyroute-500:hover { border-color: rgb(14 165 233); }
+    .hover\:from-skyroute-700:hover { --tw-gradient-from: rgb(3 105 161); }
+    .hover\:shadow-lg:hover { box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1); }
+    .hover\:text-rose-600:hover { color: rgb(225 29 72); }
+    .hover\:text-skyroute-700:hover { color: rgb(3 105 161); }
+    .hover\:text-slate-600:hover { color: rgb(71 85 105); }
+    .hover\:to-trail-700:hover { --tw-gradient-to: rgb(4 120 87); }
+    /* A .hidden minden alap display-osztályt felülír, de a sm:/md: töréspontok felülírhatják */
+    .hidden { display: none; }
+    @media (min-width: 640px) {
+      .sm\:flex { display: flex; }
+      .sm\:inline { display: inline; }
+    }
+    @media (min-width: 768px) {
+      .md\:block { display: block; }
+      .md\:flex { display: flex; }
+      .md\:flex-row { flex-direction: row; }
+      .md\:hidden { display: none; }
+      .md\:p-5 { padding: 1.25rem; }
+      .md\:shadow-none { box-shadow: 0 0 #0000; }
+      .md\:w-\[390px\] { width: 390px; }
+    }
+    @media (min-width: 1024px) {
+      .lg\:w-\[410px\] { width: 410px; }
+    }
+
+    /* Egyedi Leaflet divIcon alaphelyzetbe állítása */
+    .weather-div-icon,
+    .break-div-icon,
+    .poi-div-icon {
+      background: transparent;
+      border: none;
+    }
+
+    /*
+     * A jelölők középre igazítása a különálló "translate" tulajdonsággal történik,
+     * így a "transform: scale()" hover/drag animációk szabadon változtathatók
+     * (korábban az inline transform felülírta a hover stílusokat).
+     */
+    .weather-pill,
+    .break-marker-pill,
+    .poi-marker-badge {
+      translate: -50% -50%;
+      transform-origin: center;
+    }
+
+    /* Térképes POI (bolt, étterem, presszó/kocsma) ikon stílusa */
+    .poi-marker-badge {
+      transition: transform 0.15s ease, box-shadow 0.15s ease;
+      cursor: pointer;
+    }
+    .poi-marker-badge:hover {
+      transform: scale(1.22);
+    }
+
+    /* Térképes időjárás-kártya finom animáció */
+    .weather-pill {
+      transition: transform 0.15s ease, box-shadow 0.15s ease;
+    }
+    .weather-pill:hover {
+      transform: scale(1.08);
+    }
+
+    /* Húzható szünet ikon kurzor stílusa */
+    .break-marker-pill {
+      cursor: grab;
+      transition: transform 0.15s ease, box-shadow 0.15s ease;
+    }
+    .break-marker-pill:hover {
+      transform: scale(1.12);
+    }
+    .break-marker-pill.is-dragging,
+    .break-marker-pill:active {
+      cursor: grabbing;
+      transform: scale(1.18);
+      box-shadow: 0 12px 24px -4px rgba(245, 158, 11, 0.55);
+    }
+
+    /* Húzás közbeni dinamikus tooltip stílusa */
+    .break-drag-tooltip {
+      background: rgba(15, 23, 42, 0.92);
+      color: #ffffff;
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      border-radius: 0.6rem;
+      padding: 4px 10px;
+      font-family: 'Inter', system-ui, sans-serif;
+      font-size: 11px;
+      font-weight: 600;
+      box-shadow: 0 8px 20px -4px rgba(15, 23, 42, 0.35);
+      white-space: nowrap;
+    }
+    .break-drag-tooltip::before {
+      border-top-color: rgba(15, 23, 42, 0.92) !important;
+    }
+
+    /* Leaflet popup modernizálása */
+    .leaflet-popup-content-wrapper {
+      border-radius: 0.75rem;
+      box-shadow: 0 10px 25px -5px rgba(15, 23, 42, 0.18), 0 8px 10px -6px rgba(15, 23, 42, 0.1);
+      padding: 0;
+      overflow: hidden;
+    }
+    .leaflet-popup-content {
+      margin: 0;
+      min-width: 230px;
+    }
+
+    /* Finom görgetősáv a bal oldali panelhez */
+    .custom-scroll::-webkit-scrollbar {
+      width: 6px;
+    }
+    .custom-scroll::-webkit-scrollbar-track {
+      background: #f1f5f9;
+    }
+    .custom-scroll::-webkit-scrollbar-thumb {
+      background: #cbd5e1;
+      border-radius: 9999px;
+    }
+    .custom-scroll::-webkit-scrollbar-thumb:hover {
+      background: #94a3b8;
+    }
+  </style>
+</head>
+<body class="bg-slate-50 text-slate-800 h-screen overflow-hidden flex flex-col">
+
+  <!-- Mobil felső fejléc (csak kisebb képernyőn látható) -->
+  <header class="md:hidden flex items-center justify-between px-4 py-3 bg-white border-b border-slate-200 z-30 shrink-0 shadow-sm">
+    <div class="flex items-center gap-2.5">
+      <div class="w-8 h-8 rounded-lg bg-gradient-to-br from-skyroute-600 to-trail-600 flex items-center justify-center text-white shadow-sm">
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M3 15a4 4 0 004 4h9a5 5 0 10-.1-9.999 5.002 5.002 0 10-9.78 2.096A4.001 4.001 0 003 15z" />
+        </svg>
+      </div>
+      <div>
+        <h1 class="text-sm font-bold text-slate-900 leading-tight">GPX Időjárás Tervező</h1>
+        <p id="mobileRouteSubtitle" class="text-xs text-slate-500">Tölts fel egy GPX fájlt</p>
+      </div>
+    </div>
+    <button
+      id="mobileToggleBtn"
+      type="button"
+      class="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-semibold bg-slate-100 hover:bg-slate-200 text-slate-700 transition"
+    >
+      <span id="mobileToggleText">Térkép nézet</span>
+      <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7" />
+      </svg>
+    </button>
+  </header>
+
+  <!-- Fő kétoszlopos elrendezés -->
+  <div class="flex-1 flex flex-col md:flex-row min-h-0 relative">
+
+    <!-- BAL OLDALI VEZÉRLŐPANEL -->
+    <aside
+      id="sidebarPanel"
+      class="w-full md:w-[390px] lg:w-[410px] shrink-0 bg-white border-r border-slate-200 flex flex-col h-full z-20 shadow-lg md:shadow-none"
+    >
+      <!-- Desktop fejléc -->
+      <div class="hidden md:flex items-center gap-3 px-5 py-4 border-b border-slate-100 bg-gradient-to-r from-skyroute-50/70 to-trail-50/70 shrink-0">
+        <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-skyroute-600 to-trail-600 flex items-center justify-center text-white shadow-md shrink-0">
+          <svg class="w-6 h-6" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M3 15a4 4 0 004 4h9a5 5 0 10-.1-9.999 5.002 5.002 0 10-9.78 2.096A4.001 4.001 0 003 15z" />
+          </svg>
+        </div>
+        <div>
+          <h1 class="text-lg font-bold text-slate-900 tracking-tight">GPX Időjárás Tervező</h1>
+          <p class="text-xs text-slate-500">Útvonal-alapú időjárás és szünetkalkulátor</p>
+        </div>
+      </div>
+
+      <!-- Görgethető tartalom -->
+      <div class="flex-1 overflow-y-auto custom-scroll p-4 md:p-5 space-y-5">
+
+        <!-- Figyelmeztető / Státusz üzenet doboz (alert() helyett) -->
+        <div id="statusBanner" class="hidden rounded-xl p-3.5 text-sm border flex items-start gap-2.5">
+          <span id="statusIcon" class="shrink-0 mt-0.5"></span>
+          <div class="flex-1">
+            <p id="statusTitle" class="font-semibold text-xs uppercase tracking-wide mb-0.5"></p>
+            <p id="statusMessage" class="text-xs leading-relaxed"></p>
+          </div>
+          <button id="closeBannerBtn" type="button" class="text-slate-400 hover:text-slate-600 p-0.5 rounded" aria-label="Bezárás">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+        </div>
+
+        <!-- 1. GPX Feltöltés szekció -->
+        <section class="space-y-3">
+          <div class="flex items-center justify-between">
+            <h2 class="text-xs font-bold uppercase tracking-wider text-slate-500">1. Útvonal (GPX)</h2>
+            <span id="loadedFileBadge" class="hidden text-xs font-medium text-trail-700 bg-trail-50 border border-trail-100 px-2.5 py-0.5 rounded-full truncate max-w-[200px]"></span>
+          </div>
+
+          <!-- Drag-and-drop zóna -->
+          <div
+            id="dropZone"
+            class="border-2 border-dashed border-slate-300 hover:border-skyroute-500 bg-slate-50/70 hover:bg-skyroute-50/40 rounded-xl p-4 text-center cursor-pointer transition group"
+          >
+            <input id="gpxFileInput" type="file" accept=".gpx,application/gpx+xml,text/xml" class="hidden" />
+            <div class="w-10 h-10 mx-auto mb-2 rounded-full bg-white border border-slate-200 flex items-center justify-center text-skyroute-600 group-hover:scale-105 transition shadow-sm">
+              <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+              </svg>
+            </div>
+            <p class="text-sm font-semibold text-slate-700">Húzd ide a GPX fájlt</p>
+            <p class="text-xs text-slate-500 mt-0.5">vagy kattints a tallózáshoz (.gpx)</p>
+          </div>
+        </section>
+
+        <!-- 2. Túra beállítások -->
+        <section class="space-y-3 pt-2 border-t border-slate-100">
+          <h2 class="text-xs font-bold uppercase tracking-wider text-slate-500">2. Indulás és tempó</h2>
+
+          <div class="space-y-3">
+            <!-- Indulás dátuma és ideje -->
+            <div>
+              <label for="startDateTime" class="block text-xs font-medium text-slate-700 mb-1">
+                Indulás dátuma és ideje
+              </label>
+              <input
+                id="startDateTime"
+                type="datetime-local"
+                class="w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-skyroute-500 focus:border-skyroute-500 transition"
+              />
+            </div>
+
+            <!-- Átlagsebesség és mintavételezési köz -->
+            <div class="grid grid-cols-2 gap-3">
+              <div>
+                <label for="avgSpeed" class="block text-xs font-medium text-slate-700 mb-1">
+                  Átlagsebesség (km/h)
+                </label>
+                <input
+                  id="avgSpeed"
+                  type="number"
+                  min="3"
+                  max="60"
+                  step="0.5"
+                  value="22"
+                  class="w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-skyroute-500 focus:border-skyroute-500 transition"
+                />
+              </div>
+              <div>
+                <label for="sampleInterval" class="block text-xs font-medium text-slate-700 mb-1">
+                  Mintavétel (km)
+                </label>
+                <input
+                  id="sampleInterval"
+                  type="number"
+                  min="2"
+                  max="50"
+                  step="1"
+                  value="10"
+                  class="w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-skyroute-500 focus:border-skyroute-500 transition"
+                />
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- 3. Szünetek kezelése -->
+        <section class="space-y-3 pt-2 border-t border-slate-100">
+          <div class="flex items-center justify-between">
+            <h2 class="text-xs font-bold uppercase tracking-wider text-slate-500">3. Szünetek</h2>
+            <button
+              id="addBreakBtn"
+              type="button"
+              class="inline-flex items-center gap-1 text-xs font-semibold text-skyroute-600 hover:text-skyroute-700 bg-skyroute-50 hover:bg-skyroute-100 px-2.5 py-1.5 rounded-lg transition"
+            >
+              <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4" />
+              </svg>
+              Szünet hozzáadása
+            </button>
+          </div>
+
+          <div id="breaksContainer" class="space-y-2">
+            <!-- Dinamikusan generált szünet sorok -->
+          </div>
+          <p id="noBreaksHint" class="text-xs text-slate-400 italic">Nincs beállított szünet. Kattints a „Szünet hozzáadása” gombra, vagy válassz egy boltot / éttermet a térképen!</p>
+
+          <!-- Kiemelt használati tipp a húzható ikonokhoz és POI-khoz -->
+          <div class="rounded-xl bg-amber-50/90 border border-amber-200/80 px-3 py-2 flex items-start gap-2 text-[11px] text-amber-900">
+            <span class="shrink-0 leading-tight mt-0.5">💡</span>
+            <p class="leading-snug">
+              <span class="font-semibold">Tipp:</span> A szünet ikonokat az útvonalon húzva is átállíthatod, vagy kattints a térképen egy 🛒 boltra, 🍽️ étteremre, 🍺 presszóra, 🍰 cukrászdára vagy 🚰 ivókútra, és állíts be oda pihenőt!
+            </p>
+          </div>
+        </section>
+
+        <!-- Frissítés gomb -->
+        <div class="pt-1">
+          <button
+            id="refreshForecastBtn"
+            type="button"
+            disabled
+            class="w-full py-3 px-4 rounded-xl bg-gradient-to-r from-skyroute-600 to-trail-600 hover:from-skyroute-700 hover:to-trail-700 disabled:from-slate-300 disabled:to-slate-300 disabled:cursor-not-allowed text-white font-semibold text-sm shadow-md hover:shadow-lg transition flex items-center justify-center gap-2"
+          >
+            <svg id="refreshSpinner" class="hidden w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
+              <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+              <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
+            </svg>
+            <span id="refreshBtnText">Előrejelzés frissítése</span>
+          </button>
+        </div>
+
+        <!-- 4. Túra összesítő kártyák -->
+        <section id="summarySection" class="hidden space-y-3 pt-3 border-t border-slate-200">
+          <h2 class="text-xs font-bold uppercase tracking-wider text-slate-500">Túra összesítő</h2>
+          <div class="grid grid-cols-2 gap-2.5">
+            <div class="bg-slate-50 border border-slate-200/80 rounded-xl p-3">
+              <p class="text-[11px] text-slate-500 font-medium">Össztáv</p>
+              <p id="sumDistance" class="text-base font-bold text-slate-900 mt-0.5">–</p>
+            </div>
+            <div class="bg-slate-50 border border-slate-200/80 rounded-xl p-3">
+              <p class="text-[11px] text-slate-500 font-medium">Várható érkezés</p>
+              <p id="sumArrival" class="text-base font-bold text-trail-700 mt-0.5">–</p>
+            </div>
+            <div class="bg-slate-50 border border-slate-200/80 rounded-xl p-3">
+              <p class="text-[11px] text-slate-500 font-medium">Tiszta menetidő</p>
+              <p id="sumMovingTime" class="text-sm font-bold text-slate-800 mt-0.5">–</p>
+            </div>
+            <div class="bg-slate-50 border border-slate-200/80 rounded-xl p-3">
+              <p class="text-[11px] text-slate-500 font-medium">Szünetek összesen</p>
+              <p id="sumBreakTime" class="text-sm font-bold text-amber-700 mt-0.5">–</p>
+            </div>
+            <div class="bg-skyroute-50/70 border border-skyroute-100 rounded-xl p-3">
+              <p class="text-[11px] text-skyroute-700 font-medium">Hőmérséklet</p>
+              <p id="sumTempRange" class="text-sm font-bold text-slate-900 mt-0.5">–</p>
+            </div>
+            <div class="bg-skyroute-50/70 border border-skyroute-100 rounded-xl p-3">
+              <p class="text-[11px] text-skyroute-700 font-medium">Max. eső / Max. szél</p>
+              <p id="sumRainWind" class="text-sm font-bold text-slate-900 mt-0.5">–</p>
+            </div>
+          </div>
+        </section>
+
+        <!-- 5. Kattintható állomáslista (idővonal) -->
+        <section id="timelineSection" class="hidden space-y-3 pt-3 border-t border-slate-200 pb-4">
+          <div class="flex items-center justify-between">
+            <h2 class="text-xs font-bold uppercase tracking-wider text-slate-500">Állomások és előrejelzés</h2>
+            <span class="text-[11px] text-slate-400">Kattints egy pontra</span>
+          </div>
+          <div id="timelineList" class="space-y-2">
+            <!-- Dinamikusan generált állomás elemek -->
+          </div>
+        </section>
+
+      </div>
+
+      <!-- Lábléc -->
+      <div class="px-5 py-2.5 border-t border-slate-100 bg-slate-50 text-[11px] text-slate-400 flex items-center justify-between shrink-0">
+        <span>Időjárás: Open-Meteo API</span>
+        <span>Térkép: OpenStreetMap</span>
+      </div>
+    </aside>
+
+    <!-- JOBB OLDALI INTERAKTÍV TÉRKÉP -->
+    <main id="mapWrapper" class="hidden md:block flex-1 relative h-full min-h-0 bg-slate-200">
+      <div id="map" class="w-full h-full z-10"></div>
+
+      <!-- Lebegő POI szűrősáv a térkép jobb felső sarkában -->
+      <div
+        id="poiControlBar"
+        class="hidden absolute top-3 right-3 z-[400] bg-white/95 backdrop-blur-sm border border-slate-200 rounded-xl p-1.5 shadow-md flex flex-wrap items-center gap-1.5 max-w-[calc(100%-60px)]"
+      >
+        <span id="poiLoadingBadge" class="hidden inline-flex items-center gap-1.5 px-2 py-1 text-[11px] font-medium text-slate-500">
+          <svg class="w-3.5 h-3.5 animate-spin text-skyroute-600" fill="none" viewBox="0 0 24 24">
+            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
+          </svg>
+          Helyek betöltése...
+        </span>
+
+        <span id="poiErrorBadge" class="hidden inline-flex items-center gap-1 px-2 py-1 text-[11px] font-semibold text-rose-700 bg-rose-50 border border-rose-200 rounded-lg" role="status">
+          ⚠️ A helyek betöltése sikertelen
+        </span>
+
+        <button
+          id="poiToggleShop"
+          type="button"
+          data-poi-cat="shop"
+          class="poi-filter-btn inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-[11px] font-semibold border transition bg-emerald-50 border-emerald-300 text-emerald-800"
+          title="Boltok megjelenítése / elrejtése"
+        >
+          <span>🛒</span>
+          <span class="hidden sm:inline">Boltok</span>
+          <span id="poiCountShop" class="text-[10px] opacity-75">0</span>
+        </button>
+
+        <button
+          id="poiToggleRestaurant"
+          type="button"
+          data-poi-cat="restaurant"
+          class="poi-filter-btn inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-[11px] font-semibold border transition bg-orange-50 border-orange-300 text-orange-800"
+          title="Éttermek megjelenítése / elrejtése"
+        >
+          <span>🍽️</span>
+          <span class="hidden sm:inline">Éttermek</span>
+          <span id="poiCountRestaurant" class="text-[10px] opacity-75">0</span>
+        </button>
+
+        <button
+          id="poiTogglePub"
+          type="button"
+          data-poi-cat="pub"
+          class="poi-filter-btn inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-[11px] font-semibold border transition bg-amber-50 border-amber-300 text-amber-800"
+          title="Presszók és kocsmák megjelenítése / elrejtése"
+        >
+          <span>🍺</span>
+          <span class="hidden sm:inline">Presszó / Kocsma</span>
+          <span id="poiCountPub" class="text-[10px] opacity-75">0</span>
+        </button>
+
+        <button
+          id="poiToggleSweets"
+          type="button"
+          data-poi-cat="sweets"
+          class="poi-filter-btn inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-[11px] font-semibold border transition bg-pink-50 border-pink-300 text-pink-800"
+          title="Cukrászdák és fagyizók megjelenítése / elrejtése"
+        >
+          <span>🍰</span>
+          <span class="hidden sm:inline">Cukrászda</span>
+          <span id="poiCountSweets" class="text-[10px] opacity-75">0</span>
+        </button>
+
+        <button
+          id="poiToggleWater"
+          type="button"
+          data-poi-cat="water"
+          class="poi-filter-btn inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-[11px] font-semibold border transition bg-cyan-50 border-cyan-300 text-cyan-800"
+          title="Ivókutak megjelenítése / elrejtése"
+        >
+          <span>🚰</span>
+          <span class="hidden sm:inline">Ivókút</span>
+          <span id="poiCountWater" class="text-[10px] opacity-75">0</span>
+        </button>
+
+        <select
+          id="poiRadiusSelect"
+          aria-label="Helyek keresési távolsága"
+          title="Keresési távolság az útvonaltól"
+          class="px-2 py-1 rounded-lg text-[11px] font-semibold border border-slate-300 bg-slate-50 text-slate-700 focus:outline-none focus:ring-2 focus:ring-skyroute-500 cursor-pointer"
+        >
+          <option value="500">500 m</option>
+          <option value="1200" selected>1,2 km</option>
+          <option value="3000">3 km</option>
+        </select>
+
+        <button
+          id="poiRetryBtn"
+          type="button"
+          class="hidden inline-flex items-center gap-1 px-2 py-1 rounded-lg text-[11px] font-semibold bg-slate-100 hover:bg-slate-200 text-slate-700 transition"
+          title="Helyek újratöltése"
+        >
+          🔄 Újra
+        </button>
+      </div>
+
+      <!-- Lebegő jelmagyarázat a térkép bal alsó sarkában -->
+      <div class="hidden sm:flex items-center gap-3 absolute bottom-5 left-4 z-[400] bg-white/95 backdrop-blur-sm border border-slate-200 rounded-xl px-3.5 py-2 shadow-md text-[11px] text-slate-600">
+        <span class="flex items-center gap-1.5">
+          <span class="w-3 h-1 rounded-full bg-skyroute-600 inline-block"></span>
+          Útvonal
+        </span>
+        <span class="flex items-center gap-1.5">
+          <span class="text-skyroute-600 font-bold">💧</span>
+          &gt;30% eső kiemelve
+        </span>
+        <span class="flex items-center gap-1.5">
+          <span class="inline-block font-bold text-slate-700">↑</span>
+          Szél iránya (amerre fúj)
+        </span>
+        <span class="flex items-center gap-1.5">
+          <span class="w-3 h-3 rounded-full bg-amber-500 inline-block"></span>
+          Szünet (húzható)
+        </span>
+        <span class="flex items-center gap-1.5" title="POI nyitvatartás az érkezéskor">
+          <span class="w-2 h-2 rounded-full bg-emerald-500 inline-block"></span>/<span class="w-2 h-2 rounded-full bg-rose-500 inline-block"></span>
+          Nyitva / Zárva
+        </span>
+      </div>
+    </main>
+
+  </div>
+
+  <!-- Leaflet.js JS -->
+  <script
+    src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+    integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo="
+    crossorigin=""
+  ></script>
+
+  <!-- OpenStreetMap opening_hours.js parser (nyitvatartás kiértékeléséhez) -->
+  <script src="https://cdn.jsdelivr.net/npm/opening_hours/opening_hours.js"></script>
+
+  <script>
+    /**
+     * =========================================================================
+     * GPX IDŐJÁRÁS TERVEZŐ – FŐ ALKALMAZÁS LOGIKA
+     * =========================================================================
+     */
+
+    // --- Alkalmazás állapota ---
+    const state = {
+      routeName: '',
+      trackPoints: [],         // [{ lat, lon, distKm }]
+      totalDistanceKm: 0,
+      breaks: [],              // [{ id, km, durationMin, label, customLat?, customLon?, detourMeters?, poiCategory?, poiIcon? }]
+      samplePoints: [],        // Mintavételi pontok + időjárás + marker referencia
+      breakMarkers: [],        // Szünet markerek
+      pois: [],                // Útvonal menti boltok, éttermek, presszók/kocsmák (Overpass API)
+      poiRequestId: 0,         // Versenyhelyzet elkerülése POI újratöltéskor
+      forecastRequestId: 0,    // Versenyhelyzet elkerülése előrejelzés-lekéréskor
+      poiFilters: {
+        shop: true,
+        restaurant: true,
+        pub: true,
+        sweets: true,
+        water: true
+      },
+      poiRadiusMeters: 1200,
+      rawPoiElements: null,
+      rawPoiRadius: 0,
+      weatherCache: new Map(), // Open-Meteo órás adatok gyorsítótára: "lat,lon" -> API válasz objektum
+      map: null,
+      routeLayerGroup: null,
+      poiLayerGroup: null,
+      markersLayerGroup: null,
+      routeBounds: null,       // Az útvonal befoglaló területe (mobil nézetváltáshoz)
+      pendingFit: false,       // Igaz, ha a térkép rejtve volt az útvonal kirajzolásakor
+      isLoading: false,
+      mobileView: 'panel'      // 'panel' vagy 'map'
+    };
+
+    // --- DOM elemek gyors elérése ---
+    const dom = {
+      mobileRouteSubtitle: document.getElementById('mobileRouteSubtitle'),
+      mobileToggleBtn: document.getElementById('mobileToggleBtn'),
+      mobileToggleText: document.getElementById('mobileToggleText'),
+      sidebarPanel: document.getElementById('sidebarPanel'),
+      mapWrapper: document.getElementById('mapWrapper'),
+
+      statusBanner: document.getElementById('statusBanner'),
+      statusIcon: document.getElementById('statusIcon'),
+      statusTitle: document.getElementById('statusTitle'),
+      statusMessage: document.getElementById('statusMessage'),
+      closeBannerBtn: document.getElementById('closeBannerBtn'),
+
+      loadedFileBadge: document.getElementById('loadedFileBadge'),
+      dropZone: document.getElementById('dropZone'),
+      gpxFileInput: document.getElementById('gpxFileInput'),
+
+      startDateTime: document.getElementById('startDateTime'),
+      avgSpeed: document.getElementById('avgSpeed'),
+      sampleInterval: document.getElementById('sampleInterval'),
+
+      addBreakBtn: document.getElementById('addBreakBtn'),
+      breaksContainer: document.getElementById('breaksContainer'),
+      noBreaksHint: document.getElementById('noBreaksHint'),
+
+      refreshForecastBtn: document.getElementById('refreshForecastBtn'),
+      refreshSpinner: document.getElementById('refreshSpinner'),
+      refreshBtnText: document.getElementById('refreshBtnText'),
+
+      summarySection: document.getElementById('summarySection'),
+      sumDistance: document.getElementById('sumDistance'),
+      sumArrival: document.getElementById('sumArrival'),
+      sumMovingTime: document.getElementById('sumMovingTime'),
+      sumBreakTime: document.getElementById('sumBreakTime'),
+      sumTempRange: document.getElementById('sumTempRange'),
+      sumRainWind: document.getElementById('sumRainWind'),
+
+      timelineSection: document.getElementById('timelineSection'),
+      timelineList: document.getElementById('timelineList'),
+
+      poiControlBar: document.getElementById('poiControlBar'),
+      poiLoadingBadge: document.getElementById('poiLoadingBadge'),
+      poiErrorBadge: document.getElementById('poiErrorBadge'),
+      poiToggleShop: document.getElementById('poiToggleShop'),
+      poiToggleRestaurant: document.getElementById('poiToggleRestaurant'),
+      poiTogglePub: document.getElementById('poiTogglePub'),
+      poiCountShop: document.getElementById('poiCountShop'),
+      poiCountRestaurant: document.getElementById('poiCountRestaurant'),
+      poiCountPub: document.getElementById('poiCountPub'),
+      poiToggleSweets: document.getElementById('poiToggleSweets'),
+      poiToggleWater: document.getElementById('poiToggleWater'),
+      poiCountSweets: document.getElementById('poiCountSweets'),
+      poiCountWater: document.getElementById('poiCountWater'),
+      poiRadiusSelect: document.getElementById('poiRadiusSelect'),
+      poiRetryBtn: document.getElementById('poiRetryBtn')
+    };
+
+    // =========================================================================
+    // SEGÉDFÜGGVÉNYEK (Dátum, formázás, WMO kódok, státusz banner)
+    // =========================================================================
+
+    function pad2(n) {
+      return String(n).padStart(2, '0');
+    }
+
+    function escapeHtml(str) {
+      return String(str || '')
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+    }
+
+    function formatTimeHM(date) {
+      if (!(date instanceof Date) || isNaN(date.getTime())) return '–';
+      return `${pad2(date.getHours())}:${pad2(date.getMinutes())}`;
+    }
+
+    // Idő + nap-eltolás jelzése, ha az érkezés nem az indulás napjára esik (többnapos túra, éjfél után)
+    function formatTimeWithDay(date, short = false) {
+      const base = formatTimeHM(date);
+      if (!(date instanceof Date) || isNaN(date.getTime())) return base;
+      const start = getStartDate();
+      const d0 = new Date(start.getFullYear(), start.getMonth(), start.getDate());
+      const d1 = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+      const diff = Math.round((d1.getTime() - d0.getTime()) / 86400000);
+      if (diff <= 0) return base;
+      return short ? `${base} (+${diff}n)` : `${base} (+${diff} nap)`;
+    }
+
+    function formatDateTimeShort(date) {
+      if (!(date instanceof Date) || isNaN(date.getTime())) return '–';
+      return `${date.getFullYear()}.${pad2(date.getMonth() + 1)}.${pad2(date.getDate())}. ${pad2(date.getHours())}:${pad2(date.getMinutes())}`;
+    }
+
+    function formatDurationMinutes(totalMinutes) {
+      const mins = Math.max(0, Math.round(totalMinutes));
+      const h = Math.floor(mins / 60);
+      const m = mins % 60;
+      if (h === 0) return `${m} perc`;
+      return `${h} ó ${pad2(m)} p`;
+    }
+
+    function getDefaultStartDateTimeString() {
+      const d = new Date();
+      d.setDate(d.getDate() + 1);
+      d.setHours(8, 0, 0, 0);
+      return `${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())}T${pad2(d.getHours())}:${pad2(d.getMinutes())}`;
+    }
+
+    function getWindDirectionText(deg) {
+      if (typeof deg !== 'number' || isNaN(deg)) return '–';
+      const dirs = ['É', 'ÉK', 'K', 'DK', 'D', 'DNy', 'Ny', 'ÉNy'];
+      const idx = Math.round(((((deg % 360) + 360) % 360) / 45)) % 8;
+      return dirs[idx];
+    }
+
+    function getWmoDescription(code) {
+      const map = {
+        0: { icon: '☀️', text: 'Derült' },
+        1: { icon: '🌤️', text: 'Főként derült' },
+        2: { icon: '⛅', text: 'Részben felhős' },
+        3: { icon: '☁️', text: 'Borult' },
+        45: { icon: '🌫️', text: 'Köd' },
+        48: { icon: '🌫️', text: 'Zúzmarás köd' },
+        51: { icon: '🌦️', text: 'Enyhe szitálás' },
+        53: { icon: '🌦️', text: 'Mérsékelt szitálás' },
+        55: { icon: '🌧️', text: 'Erős szitálás' },
+        56: { icon: '🌧️', text: 'Ónos szitálás' },
+        57: { icon: '🌧️', text: 'Erős ónos szitálás' },
+        61: { icon: '🌦️', text: 'Gyenge eső' },
+        63: { icon: '🌧️', text: 'Mérsékelt eső' },
+        65: { icon: '🌧️', text: 'Erős eső' },
+        66: { icon: '🌧️', text: 'Ónos eső' },
+        67: { icon: '🌧️', text: 'Erős ónos eső' },
+        71: { icon: '🌨️', text: 'Gyenge havazás' },
+        73: { icon: '🌨️', text: 'Mérsékelt havazás' },
+        75: { icon: '❄️', text: 'Erős havazás' },
+        77: { icon: '🌨️', text: 'Hószemcsék' },
+        80: { icon: '🌦️', text: 'Gyenge zápor' },
+        81: { icon: '🌧️', text: 'Mérsékelt zápor' },
+        82: { icon: '⛈️', text: 'Heves zápor' },
+        85: { icon: '🌨️', text: 'Gyenge hózápor' },
+        86: { icon: '🌨️', text: 'Erős hózápor' },
+        95: { icon: '⛈️', text: 'Zivatar' },
+        96: { icon: '⛈️', text: 'Zivatar jégesővel' },
+        99: { icon: '⛈️', text: 'Heves zivatar jégesővel' }
+      };
+      return map[code] || { icon: '🌤️', text: 'Változó idő' };
+    }
+
+    /**
+     * Státusz banner. A "kind" azonosítja az üzenet forrását, így egy forrás
+     * csak a saját üzenetét törölheti (pl. sikeres lekérés nem tüntet el egy másik hibát).
+     */
+    function showBanner(type, title, message, kind = 'general') {
+      const styles = {
+        info: {
+          box: 'bg-skyroute-50 border-skyroute-200 text-skyroute-900',
+          icon: 'ℹ️'
+        },
+        warning: {
+          box: 'bg-amber-50 border-amber-200 text-amber-900',
+          icon: '⚠️'
+        },
+        error: {
+          box: 'bg-rose-50 border-rose-200 text-rose-900',
+          icon: '❌'
+        },
+        success: {
+          box: 'bg-trail-50 border-trail-200 text-trail-900',
+          icon: '✅'
+        }
+      };
+      const cfg = styles[type] || styles.info;
+      dom.statusBanner.className = `rounded-xl p-3.5 text-sm border flex items-start gap-2.5 ${cfg.box}`;
+      dom.statusBanner.dataset.kind = kind;
+      dom.statusIcon.textContent = cfg.icon;
+      dom.statusTitle.textContent = title;
+      dom.statusMessage.textContent = message;
+      dom.statusBanner.classList.remove('hidden');
+    }
+
+    function hideBanner(kind) {
+      if (kind && dom.statusBanner.dataset.kind !== kind) return;
+      dom.statusBanner.classList.add('hidden');
+    }
+
+    function setLoading(isLoading) {
+      state.isLoading = isLoading;
+      dom.refreshForecastBtn.disabled = isLoading || state.trackPoints.length < 2;
+      if (isLoading) {
+        dom.refreshSpinner.classList.remove('hidden');
+        dom.refreshBtnText.textContent = 'Előrejelzés lekérése...';
+      } else {
+        dom.refreshSpinner.classList.add('hidden');
+        dom.refreshBtnText.textContent = 'Előrejelzés frissítése';
+      }
+    }
+
+    // =========================================================================
+    // TÉRKÉP INICIALIZÁLÁSA ÉS GEOMETRIAI FÜGGVÉNYEK
+    // =========================================================================
+
+    function initMap() {
+      // Alapértelmezett nézet: Magyarország
+      state.map = L.map('map', {
+        zoomControl: true
+      }).setView([47.1625, 19.5033], 7);
+
+      L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        maxZoom: 19,
+        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a> közreműködők'
+      }).addTo(state.map);
+
+      state.routeLayerGroup = L.layerGroup().addTo(state.map);
+      state.poiLayerGroup = L.layerGroup().addTo(state.map);
+      state.markersLayerGroup = L.layerGroup().addTo(state.map);
+
+      // Ha a böngésző engedélyezi a helymeghatározást, és még nincs betöltött GPX, odaugrik
+      if (navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition(
+          (pos) => {
+            if (state.trackPoints.length === 0 && state.map) {
+              state.map.setView([pos.coords.latitude, pos.coords.longitude], 12, { animate: true });
+            }
+          },
+          () => { /* Engedély elutasítása vagy hiba esetén marad Magyarország nézet */ },
+          { enableHighAccuracy: false, timeout: 6000, maximumAge: 300000 }
+        );
+      }
+    }
+
+    function haversineKm(lat1, lon1, lat2, lon2) {
+      const R = 6371;
+      const toRad = (deg) => (deg * Math.PI) / 180;
+      const dLat = toRad(lat2 - lat1);
+      const dLon = toRad(lon2 - lon1);
+      const a =
+        Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+        Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) *
+        Math.sin(dLon / 2) * Math.sin(dLon / 2);
+      return 2 * R * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+    }
+
+    function parseGpxText(xmlText, fallbackName) {
+      const parser = new DOMParser();
+      const xmlDoc = parser.parseFromString(xmlText, 'application/xml');
+
+      if (xmlDoc.querySelector('parsererror')) {
+        throw new Error('A fájl nem érvényes XML/GPX formátumú.');
+      }
+
+      let rawPoints = Array.from(xmlDoc.getElementsByTagName('trkpt'));
+      if (rawPoints.length < 2) {
+        rawPoints = Array.from(xmlDoc.getElementsByTagName('rtept'));
+      }
+      if (rawPoints.length < 2) {
+        throw new Error('A GPX fájl nem tartalmaz elegendő útvonalpontot (legalább 2 trkpt vagy rtept szükséges).');
+      }
+
+      const nameEl = xmlDoc.querySelector('trk > name') || xmlDoc.querySelector('metadata > name') || xmlDoc.querySelector('rte > name');
+      const routeName = (nameEl && nameEl.textContent.trim()) ? nameEl.textContent.trim() : (fallbackName || 'Feltöltött útvonal');
+
+      const points = [];
+      let totalKm = 0;
+
+      for (let i = 0; i < rawPoints.length; i++) {
+        const lat = parseFloat(rawPoints[i].getAttribute('lat'));
+        const lon = parseFloat(rawPoints[i].getAttribute('lon'));
+        if (isNaN(lat) || isNaN(lon)) continue;
+
+        if (points.length > 0) {
+          const prev = points[points.length - 1];
+          totalKm += haversineKm(prev.lat, prev.lon, lat, lon);
+        }
+        points.push({ lat, lon, distKm: totalKm });
+      }
+
+      if (points.length < 2) {
+        throw new Error('Nem sikerült érvényes koordinátákat kiolvasni a GPX fájlból.');
+      }
+
+      return { routeName, points, totalKm };
+    }
+
+    function getCoordinateAtDistance(targetKm) {
+      const pts = state.trackPoints;
+      if (pts.length === 0) return { lat: 47.24, lon: 18.60 };
+      if (targetKm <= 0) return { lat: pts[0].lat, lon: pts[0].lon };
+      if (targetKm >= state.totalDistanceKm) {
+        const last = pts[pts.length - 1];
+        return { lat: last.lat, lon: last.lon };
+      }
+
+      let low = 0;
+      let high = pts.length - 1;
+      while (low < high - 1) {
+        const mid = Math.floor((low + high) / 2);
+        if (pts[mid].distKm <= targetKm) low = mid;
+        else high = mid;
+      }
+
+      const p1 = pts[low];
+      const p2 = pts[high];
+      const segLen = p2.distKm - p1.distKm;
+      const ratio = segLen > 0 ? (targetKm - p1.distKm) / segLen : 0;
+
+      return {
+        lat: p1.lat + (p2.lat - p1.lat) * ratio,
+        lon: p1.lon + (p2.lon - p1.lon) * ratio
+      };
+    }
+
+    /**
+     * Tetszőleges (lat, lon) pont legközelebbi vetítése a GPX útvonalra.
+     *
+     * - Gyors elutasítás: azokat a szakaszokat, amelyek szélességi irányban
+     *   biztosan távolabb vannak az eddigi legjobbnál, kihagyjuk.
+     * - hint = { hintKm, windowKm }: húzás közben a körös / oda-vissza útvonalaknál
+     *   előnyben részesítjük a korábbi km körüli szakaszt, hogy a szünet ikon ne
+     *   ugráljon át a másik ágra (ha a távolságkülönbség kicsi, ~30 m).
+     */
+    function snapToRoute(lat, lon, hint) {
+      const pts = state.trackPoints;
+      if (pts.length === 0) return { lat, lon, distKm: 0 };
+      if (pts.length === 1) return { lat: pts[0].lat, lon: pts[0].lon, distKm: 0 };
+
+      const cosLat = Math.cos((lat * Math.PI) / 180);
+      const px = lon * cosLat;
+      const py = lat;
+
+      const hasHint = !!hint && typeof hint.hintKm === 'number' && typeof hint.windowKm === 'number';
+      const winLo = hasHint ? hint.hintKm - hint.windowKm : 0;
+      const winHi = hasHint ? hint.hintKm + hint.windowKm : 0;
+
+      let bestSq = Infinity;
+      let best = { lat: pts[0].lat, lon: pts[0].lon, distKm: 0 };
+      let winSq = Infinity;
+      let win = null;
+
+      for (let i = 0; i < pts.length - 1; i++) {
+        const a = pts[i];
+        const b = pts[i + 1];
+
+        const inWin = hasHint && b.distKm >= winLo && a.distKm <= winHi;
+
+        // Gyors elutasítás szélességi irányban
+        const minY = a.lat < b.lat ? a.lat : b.lat;
+        const maxY = a.lat < b.lat ? b.lat : a.lat;
+        const dyOut = py < minY ? minY - py : (py > maxY ? py - maxY : 0);
+        const dy2 = dyOut * dyOut;
+        if (dy2 >= bestSq && (!inWin || dy2 >= winSq)) continue;
+
+        const ax = a.lon * cosLat;
+        const ay = a.lat;
+        const bx = b.lon * cosLat;
+        const by = b.lat;
+
+        const abx = bx - ax;
+        const aby = by - ay;
+        const abLenSq = abx * abx + aby * aby;
+
+        let t = 0;
+        if (abLenSq > 0) {
+          t = ((px - ax) * abx + (py - ay) * aby) / abLenSq;
+          if (t < 0) t = 0;
+          else if (t > 1) t = 1;
+        }
+
+        const dx = px - (ax + t * abx);
+        const dy = py - (ay + t * aby);
+        const dSq = dx * dx + dy * dy;
+
+        if (dSq < bestSq) {
+          bestSq = dSq;
+          best = {
+            lat: a.lat + t * (b.lat - a.lat),
+            lon: a.lon + t * (b.lon - a.lon),
+            distKm: a.distKm + t * (b.distKm - a.distKm)
+          };
+        }
+        if (inWin && dSq < winSq) {
+          winSq = dSq;
+          win = {
+            lat: a.lat + t * (b.lat - a.lat),
+            lon: a.lon + t * (b.lon - a.lon),
+            distKm: a.distKm + t * (b.distKm - a.distKm)
+          };
+        }
+      }
+
+      if (win) {
+        const KM_PER_DEG = 111.32;
+        const winKm = Math.sqrt(winSq) * KM_PER_DEG;
+        const bestKm = Math.sqrt(bestSq) * KM_PER_DEG;
+        if (winKm <= bestKm + 0.03) return win;
+      }
+      return best;
+    }
+
+    // =========================================================================
+    // IDŐSZÁMÍTÁS ÉS SZÜNETEK KEZELÉSE
+    // =========================================================================
+
+    function getStartDate() {
+      const val = dom.startDateTime.value;
+      const d = val ? new Date(val) : new Date();
+      return isNaN(d.getTime()) ? new Date() : d;
+    }
+
+    // Számmező értékének korlátok közé szorítása; érvénytelen érték esetén az alapértelmezett.
+    // A javított értéket visszaírjuk a mezőbe, hogy a felhasználó lássa, mivel számol a program.
+    function readClampedInput(el, min, max, fallback) {
+      let val = parseFloat(el.value);
+      if (isNaN(val)) val = fallback;
+      const clamped = Math.min(max, Math.max(min, val));
+      if (String(clamped) !== el.value) el.value = clamped;
+      return clamped;
+    }
+
+    function getAvgSpeed() {
+      return readClampedInput(dom.avgSpeed, 3, 60, 22);
+    }
+
+    function getSampleInterval() {
+      return readClampedInput(dom.sampleInterval, 2, 50, 10);
+    }
+
+    function getBreakIcon(brk) {
+      return brk.poiIcon || getBreakCategoryIcon(brk.poiCategory);
+    }
+
+    function getBreakCategoryIcon(cat) {
+      if (cat === 'shop') return '🛒';
+      if (cat === 'restaurant') return '🍽️';
+      if (cat === 'pub') return '🍺';
+      if (cat === 'sweets') return '🍰';
+      if (cat === 'water') return '🚰';
+      return '☕';
+    }
+
+    // A kitérő (oda-vissza) menetideje percben
+    function getDetourMinutes(b) {
+      const meters = Number(b.detourMeters) || 0;
+      if (meters <= 20) return 0;
+      return ((meters * 2) / 1000 / getAvgSpeed()) * 60;
+    }
+
+    // Kiszámítja az érkezési időt egy adott km-pontra a megelőző szünetekkel (és kitérőkkel) együtt
+    function calculateArrivalTimeAtKm(targetKm, includeBreaksAtSameKm = false) {
+      const startDate = getStartDate();
+      const speed = getAvgSpeed();
+      const movingMinutes = (targetKm / speed) * 60;
+
+      let breakMinutes = 0;
+      state.breaks.forEach((b) => {
+        const bKm = Number(b.km) || 0;
+        const bDur = Math.max(0, Number(b.durationMin) || 0);
+        if (includeBreaksAtSameKm ? (bKm <= targetKm) : (bKm < targetKm)) {
+          breakMinutes += bDur + getDetourMinutes(b);
+        }
+      });
+
+      return new Date(startDate.getTime() + (movingMinutes + breakMinutes) * 60000);
+    }
+
+    // Egy szünet érkezési és indulási ideje (az útvonalra visszatérésig, kitérővel együtt)
+    function getBreakTimes(b) {
+      const arr = calculateArrivalTimeAtKm(b.km, false);
+      const dep = new Date(arr.getTime() + ((Number(b.durationMin) || 0) + getDetourMinutes(b)) * 60000);
+      return { arr, dep };
+    }
+
+    function addBreak(km, durationMin, label, extra = {}) {
+      const clampedKm = Math.max(0, Math.min(state.totalDistanceKm || 100, Number(km) || 0));
+      const newBreak = {
+        id: 'brk_' + Date.now() + '_' + Math.random().toString(36).slice(2, 7),
+        km: Math.round(clampedKm * 10) / 10,
+        durationMin: Math.max(1, Math.round(Number(durationMin) || 20)),
+        label: (label || 'Pihenő').trim(),
+        customLat: typeof extra.customLat === 'number' ? extra.customLat : null,
+        customLon: typeof extra.customLon === 'number' ? extra.customLon : null,
+        detourMeters: typeof extra.detourMeters === 'number' ? extra.detourMeters : 0,
+        poiCategory: extra.poiCategory || null,
+        poiIcon: extra.poiIcon || null
+      };
+      state.breaks.push(newBreak);
+      state.breaks.sort((a, b) => a.km - b.km);
+      renderBreaksList();
+      if (state.trackPoints.length >= 2) {
+        recalculateAndRenderFromCache();
+      }
+      return newBreak;
+    }
+
+    function removeBreak(id) {
+      state.breaks = state.breaks.filter((b) => b.id !== id);
+      renderBreaksList();
+      if (state.trackPoints.length >= 2) {
+        recalculateAndRenderFromCache();
+      }
+    }
+
+    function renderBreaksList() {
+      dom.breaksContainer.innerHTML = '';
+      if (state.breaks.length === 0) {
+        dom.noBreaksHint.classList.remove('hidden');
+        return;
+      }
+      dom.noBreaksHint.classList.add('hidden');
+
+      state.breaks.forEach((brk) => {
+        const icon = getBreakIcon(brk);
+        const detourBadge = brk.detourMeters > 20
+          ? `<span class="text-[10px] font-medium text-orange-700 bg-orange-50 border border-orange-200 px-1.5 py-0.5 rounded-md">+${brk.detourMeters} m kitérő</span>`
+          : '';
+
+        const row = document.createElement('div');
+        row.className = 'rounded-xl border border-amber-200/80 bg-amber-50/40 p-2.5 space-y-2';
+        row.dataset.breakId = brk.id;
+        row.innerHTML = `
+          <div class="flex items-center gap-2">
+            <span class="text-sm shrink-0">${icon}</span>
+            <input
+              type="text"
+              value="${escapeHtml(brk.label)}"
+              placeholder="Szünet neve"
+              data-field="label"
+              class="flex-1 min-w-0 bg-white border border-slate-200 rounded-lg px-2 py-1 text-xs font-semibold text-slate-800 focus:outline-none focus:ring-2 focus:ring-amber-400"
+            />
+            ${detourBadge}
+            <button
+              type="button"
+              data-remove-break="${brk.id}"
+              class="text-slate-400 hover:text-rose-600 p-1 rounded-lg hover:bg-rose-50 transition shrink-0"
+              title="Szünet törlése"
+            >
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+          </div>
+          <div class="grid grid-cols-2 gap-2">
+            <div>
+              <label class="block text-[10px] font-medium text-slate-500 mb-0.5">Hányadik km?</label>
+              <input
+                type="number"
+                step="0.1"
+                min="0"
+                max="${Math.max(1, Math.ceil(state.totalDistanceKm || 500))}"
+                value="${brk.km}"
+                data-field="km"
+                class="w-full bg-white border border-slate-200 rounded-lg px-2 py-1 text-xs text-slate-800 focus:outline-none focus:ring-2 focus:ring-amber-400"
+              />
+            </div>
+            <div>
+              <label class="block text-[10px] font-medium text-slate-500 mb-0.5">Időtartam (perc)</label>
+              <input
+                type="number"
+                step="5"
+                min="1"
+                max="360"
+                value="${brk.durationMin}"
+                data-field="durationMin"
+                class="w-full bg-white border border-slate-200 rounded-lg px-2 py-1 text-xs text-slate-800 focus:outline-none focus:ring-2 focus:ring-amber-400"
+              />
+            </div>
+          </div>
+        `;
+
+        // Eseménykezelők az inputokhoz
+        const labelInput = row.querySelector('input[data-field="label"]');
+        const kmInput = row.querySelector('input[data-field="km"]');
+        const durInput = row.querySelector('input[data-field="durationMin"]');
+        const removeBtn = row.querySelector('button[data-remove-break]');
+
+        labelInput.addEventListener('change', (e) => {
+          brk.label = e.target.value.trim() || 'Pihenő';
+          if (state.trackPoints.length >= 2) recalculateAndRenderFromCache();
+        });
+
+        kmInput.addEventListener('change', (e) => {
+          const val = parseFloat(e.target.value);
+          if (!isNaN(val)) {
+            brk.km = Math.round(Math.max(0, Math.min(state.totalDistanceKm || 500, val)) * 10) / 10;
+            // Ha kézzel módosítja a km-t, visszakerül az útvonalra
+            brk.customLat = null;
+            brk.customLon = null;
+            brk.detourMeters = 0;
+            brk.poiCategory = null;
+            brk.poiIcon = null;
+            state.breaks.sort((a, b) => a.km - b.km);
+            // A lista újrarajzolása után a sorrend és az ikon is frissül
+            renderBreaksList();
+            if (state.trackPoints.length >= 2) recalculateAndRenderFromCache();
+          }
+        });
+
+        durInput.addEventListener('change', (e) => {
+          const val = parseInt(e.target.value, 10);
+          if (!isNaN(val) && val > 0) {
+            brk.durationMin = val;
+            if (state.trackPoints.length >= 2) recalculateAndRenderFromCache();
+          }
+        });
+
+        removeBtn.addEventListener('click', () => removeBreak(brk.id));
+
+        dom.breaksContainer.appendChild(row);
+      });
+    }
+
+    // =========================================================================
+    // OPEN-METEO IDŐJÁRÁS API ÉS GYORSÍTÓTÁRAZÁS
+    // =========================================================================
+
+    function buildSamplePoints() {
+      const interval = getSampleInterval();
+      const total = state.totalDistanceKm;
+      const samples = [];
+
+      if (total <= 0) return samples;
+
+      const kmPositions = [0];
+      for (let d = interval; d < total - Math.min(2, interval * 0.25); d += interval) {
+        kmPositions.push(Math.round(d * 10) / 10);
+      }
+      kmPositions.push(Math.round(total * 10) / 10);
+
+      kmPositions.forEach((km, idx) => {
+        const coord = getCoordinateAtDistance(km);
+        const arrival = calculateArrivalTimeAtKm(km, false);
+        samples.push({
+          index: idx,
+          km,
+          lat: coord.lat,
+          lon: coord.lon,
+          cacheKey: `${coord.lat.toFixed(4)},${coord.lon.toFixed(4)}`,
+          arrivalTime: arrival,
+          weather: null,
+          marker: null
+        });
+      });
+
+      return samples;
+    }
+
+    /**
+     * Az Open-Meteo válaszát timezone=GMT-vel kérjük, így az idők UTC-ben vannak
+     * (a "Z" suffix hozzáadásával a böngésző időzónájától függetlenül abszolút időpontok).
+     * Az adatok óránkéntiek, ezért az indexet közvetlenül ki tudjuk számolni.
+     */
+    function extractWeatherForDate(apiLocationData, targetDate) {
+      if (!apiLocationData || !apiLocationData.hourly || !Array.isArray(apiLocationData.hourly.time) || apiLocationData.hourly.time.length === 0) {
+        return null;
+      }
+
+      const h = apiLocationData.hourly;
+      const times = h.time;
+      const HOUR_MS = 3600 * 1000;
+      const t0 = new Date(times[0] + 'Z').getTime();
+      const targetMs = targetDate.getTime();
+
+      if (isNaN(t0) || isNaN(targetMs)) return { outOfRange: true };
+
+      let idx = Math.round((targetMs - t0) / HOUR_MS);
+      idx = Math.max(0, Math.min(times.length - 1, idx));
+
+      const diff = Math.abs(t0 + idx * HOUR_MS - targetMs);
+      // Ha több mint 3 órával kívül esik az előrejelzési ablakon
+      if (diff > 3 * HOUR_MS) {
+        return { outOfRange: true };
+      }
+
+      const temp = h.temperature_2m ? h.temperature_2m[idx] : null;
+      // Hiányzó (null) órás érték esetén nincs használható előrejelzés
+      if (typeof temp !== 'number') {
+        return { outOfRange: true };
+      }
+
+      return {
+        outOfRange: false,
+        timeIso: times[idx],
+        temp,
+        rainProb: (h.precipitation_probability && h.precipitation_probability[idx]) ?? 0,
+        windSpeed: (h.wind_speed_10m && h.wind_speed_10m[idx]) ?? 0,
+        windDir: (h.wind_direction_10m && h.wind_direction_10m[idx]) ?? 0,
+        weatherCode: (h.weather_code && h.weather_code[idx]) ?? 0
+      };
+    }
+
+    // Az időjárási adatok betöltése a gyorsítótárba (egyedi koordinátákra, deduplikálva)
+    async function ensureWeatherCached(samples, forceRefresh = false) {
+      const uniqueByKey = new Map();
+      samples.forEach((s) => {
+        if (!uniqueByKey.has(s.cacheKey)) uniqueByKey.set(s.cacheKey, s);
+      });
+
+      const toFetch = Array.from(uniqueByKey.values()).filter(
+        (s) => forceRefresh || !state.weatherCache.has(s.cacheKey)
+      );
+      if (toFetch.length === 0) return;
+
+      // Először külön gyűjtjük az eredményt, és csak teljes siker esetén írjuk a gyorsítótárba,
+      // így egy sikertelen frissítés nem törli a meglévő (régebbi) adatokat.
+      const fetched = new Map();
+      const CHUNK_SIZE = 40;
+
+      for (let i = 0; i < toFetch.length; i += CHUNK_SIZE) {
+        const chunk = toFetch.slice(i, i + CHUNK_SIZE);
+        const lats = chunk.map((p) => p.lat.toFixed(4)).join(',');
+        const lons = chunk.map((p) => p.lon.toFixed(4)).join(',');
+        const url = `https://api.open-meteo.com/v1/forecast?latitude=${lats}&longitude=${lons}&hourly=temperature_2m,precipitation_probability,wind_speed_10m,wind_direction_10m,weather_code&forecast_days=16&timezone=GMT`;
+
+        const res = await fetch(url);
+        if (!res.ok) {
+          throw new Error(`Open-Meteo API hiba (HTTP ${res.status}). Kérlek, próbáld újra később.`);
+        }
+        const json = await res.json();
+        const list = Array.isArray(json) ? json : [json];
+
+        if (list.length !== chunk.length) {
+          throw new Error('Az Open-Meteo váratlan formátumú választ adott. Kérlek, próbáld újra később.');
+        }
+
+        chunk.forEach((pt, idx) => {
+          if (list[idx]) fetched.set(pt.cacheKey, list[idx]);
+        });
+      }
+
+      fetched.forEach((value, key) => state.weatherCache.set(key, value));
+    }
+
+    // A mintavételi pontok érkezési idejének és időjárásának újraszámolása a gyorsítótárból
+    function refreshSamplesFromCache(samples) {
+      samples.forEach((s) => {
+        s.arrivalTime = calculateArrivalTimeAtKm(s.km, false);
+        const cached = state.weatherCache.get(s.cacheKey);
+        if (cached) {
+          s.weather = extractWeatherForDate(cached, s.arrivalTime);
+        }
+      });
+    }
+
+    // Az előrejelzési ablakon kívüli pontokról szóló figyelmeztetés frissítése (minden újraszámolás után)
+    function updateRangeWarning() {
+      const anyOutOfRange = state.samplePoints.some((s) => s.weather && s.weather.outOfRange);
+      if (anyOutOfRange) {
+        showBanner(
+          'warning',
+          'Időpont az előrejelzési ablakon kívül',
+          'Az Open-Meteo 16 napra előre ad órás előrejelzést. Egyes pontok kívül esnek ezen az időszakon (vagy hiányos az adat), válassz közelebbi indulási dátumot!',
+          'range'
+        );
+      } else {
+        hideBanner('range');
+      }
+    }
+
+    // =========================================================================
+    // TÉRKÉP RAJZOLÁSA (Útvonal, Időjárás markerek, Húzható szünetek)
+    // =========================================================================
+
+    function fitRouteToView() {
+      if (!state.routeBounds || !state.map) return;
+      state.map.invalidateSize();
+      state.map.fitBounds(state.routeBounds, { padding: [45, 45] });
+      state.pendingFit = false;
+    }
+
+    function drawRoutePolyline() {
+      state.routeLayerGroup.clearLayers();
+      const latlngs = state.trackPoints.map((p) => [p.lat, p.lon]);
+
+      // Külső fehér kontúr a jobb olvashatóságért
+      L.polyline(latlngs, {
+        color: '#ffffff',
+        weight: 7,
+        opacity: 0.85,
+        lineJoin: 'round'
+      }).addTo(state.routeLayerGroup);
+
+      // Fő útvonal vonal
+      const mainLine = L.polyline(latlngs, {
+        color: '#0284c7',
+        weight: 4,
+        opacity: 0.95,
+        lineJoin: 'round'
+      }).addTo(state.routeLayerGroup);
+
+      state.routeBounds = mainLine.getBounds();
+
+      // Rejtett (0 méretű) térképre nem illesztünk nézetet: mobilon a térkép
+      // megjelenítésekor történik meg (setMobileView).
+      if (dom.mapWrapper.offsetWidth > 0) {
+        fitRouteToView();
+      } else {
+        state.pendingFit = true;
+      }
+    }
+
+    function createWeatherPopupHtml(sample) {
+      const w = sample.weather;
+      const isStart = sample.index === 0;
+      const isEnd = sample.index === state.samplePoints.length - 1;
+      const title = isStart ? 'Rajt' : (isEnd ? 'Cél' : `${sample.km.toFixed(1)} km`);
+
+      if (!w || w.outOfRange) {
+        return `
+          <div class="p-3.5 text-slate-700">
+            <div class="flex items-center justify-between border-b border-slate-100 pb-2 mb-2">
+              <span class="font-bold text-sm text-slate-900">${title}</span>
+              <span class="text-xs font-semibold text-skyroute-700 bg-skyroute-50 px-2 py-0.5 rounded-full">${formatTimeHM(sample.arrivalTime)}</span>
+            </div>
+            <p class="text-xs text-amber-700">Ehhez az időponthoz (${formatDateTimeShort(sample.arrivalTime)}) nem érhető el előrejelzés.</p>
+          </div>
+        `;
+      }
+
+      const wmo = getWmoDescription(w.weatherCode);
+      const blowDirDeg = (w.windDir + 180) % 360;
+      const windFromTxt = getWindDirectionText(w.windDir);
+      const rainHighlight = w.rainProb > 30 ? 'text-skyroute-700 font-bold' : 'text-slate-700 font-semibold';
+
+      return `
+        <div class="text-slate-800">
+          <div class="bg-gradient-to-r from-skyroute-600 to-trail-600 text-white px-3.5 py-2.5 flex items-center justify-between">
+            <div>
+              <div class="text-xs font-bold tracking-wide uppercase opacity-90">${title}</div>
+              <div class="text-[11px] opacity-85">${formatDateTimeShort(sample.arrivalTime)}</div>
+            </div>
+            <div class="text-2xl leading-none">${wmo.icon}</div>
+          </div>
+          <div class="p-3.5 space-y-2.5 text-xs">
+            <div class="flex items-center justify-between">
+              <span class="text-slate-500">Időjárás</span>
+              <span class="font-semibold text-slate-800">${wmo.text}</span>
+            </div>
+            <div class="grid grid-cols-2 gap-2 pt-1">
+              <div class="bg-slate-50 rounded-lg p-2 border border-slate-100">
+                <div class="text-[10px] text-slate-400 uppercase font-semibold">Hőmérséklet</div>
+                <div class="text-base font-bold text-slate-900 mt-0.5">${Math.round(w.temp)} °C</div>
+              </div>
+              <div class="bg-slate-50 rounded-lg p-2 border border-slate-100">
+                <div class="text-[10px] text-slate-400 uppercase font-semibold">Eső esélye</div>
+                <div class="text-base ${rainHighlight} mt-0.5">💧 ${Math.round(w.rainProb)}%</div>
+              </div>
+            </div>
+            <div class="bg-slate-50 rounded-lg p-2 border border-slate-100 flex items-center justify-between">
+              <div>
+                <div class="text-[10px] text-slate-400 uppercase font-semibold">Szél (${windFromTxt} felől)</div>
+                <div class="text-sm font-bold text-slate-800 mt-0.5">${Math.round(w.windSpeed)} km/h</div>
+              </div>
+              <div class="w-8 h-8 rounded-full bg-white border border-slate-200 flex items-center justify-center shadow-sm" title="Szél iránya (amerre fúj)">
+                <span style="display:inline-block; transform: rotate(${blowDirDeg}deg); font-size: 16px; line-height: 1; font-weight: 700; color: #0284c7;">↑</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      `;
+    }
+
+    function renderMapMarkers() {
+      state.markersLayerGroup.clearLayers();
+      state.breakMarkers = [];
+
+      // 1. Időjárás jelölők kirajzolása
+      state.samplePoints.forEach((sample) => {
+        const w = sample.weather;
+        const isStart = sample.index === 0;
+        const isEnd = sample.index === state.samplePoints.length - 1;
+
+        // A középre igazítást a .weather-pill CSS "translate" tulajdonsága végzi
+        let pillHtml = '';
+        if (!w || w.outOfRange) {
+          pillHtml = `
+            <div class="weather-pill inline-flex items-center gap-1 px-2 py-1 rounded-full bg-white border-2 border-slate-300 shadow-md text-[11px] font-bold text-slate-700 whitespace-nowrap">
+              <span>${isStart ? '🚩' : (isEnd ? '🏁' : `${Math.round(sample.km)} km`)}</span>
+              <span class="text-slate-400 font-medium">${formatTimeHM(sample.arrivalTime)}</span>
+            </div>
+          `;
+        } else {
+          const wmo = getWmoDescription(w.weatherCode);
+          const blowDirDeg = (w.windDir + 180) % 360;
+          const highRain = w.rainProb > 30;
+          const borderColor = isStart ? 'border-trail-500' : (isEnd ? 'border-slate-800' : (highRain ? 'border-skyroute-500' : 'border-slate-200'));
+          const bgClass = highRain ? 'bg-skyroute-50' : 'bg-white';
+
+          pillHtml = `
+            <div class="weather-pill inline-flex items-center gap-1.5 px-2 py-1 rounded-full ${bgClass} border-2 ${borderColor} shadow-md text-[11px] text-slate-800 whitespace-nowrap">
+              <span class="text-xs leading-none">${wmo.icon}</span>
+              <span class="font-bold text-slate-900">${Math.round(w.temp)}°</span>
+              <span class="text-[10px] ${highRain ? 'text-skyroute-700 font-bold' : 'text-slate-500 font-medium'}">${Math.round(w.rainProb)}%</span>
+              <span class="inline-flex items-center justify-center w-4 h-4 rounded-full bg-slate-100 text-skyroute-700 font-bold text-[11px]" style="transform: rotate(${blowDirDeg}deg);">↑</span>
+            </div>
+          `;
+        }
+
+        const icon = L.divIcon({
+          className: 'weather-div-icon',
+          html: pillHtml,
+          iconSize: [0, 0],
+          iconAnchor: [0, 0]
+        });
+
+        const marker = L.marker([sample.lat, sample.lon], {
+          icon,
+          zIndexOffset: (isStart || isEnd) ? 300 : 100
+        }).addTo(state.markersLayerGroup);
+
+        marker.bindPopup(createWeatherPopupHtml(sample), { maxWidth: 280 });
+        sample.marker = marker;
+      });
+
+      // 2. Szünet markerek kirajzolása (húzhatóak az útvonalon, vagy kitérővel POI-nál)
+      state.breaks.forEach((brk) => {
+        const routeCoord = getCoordinateAtDistance(brk.km);
+        const isOffRoute = typeof brk.customLat === 'number' && typeof brk.customLon === 'number';
+        const markerLat = isOffRoute ? brk.customLat : routeCoord.lat;
+        const markerLon = isOffRoute ? brk.customLon : routeCoord.lon;
+        const { arr: arrival, dep: depart } = getBreakTimes(brk);
+        const brkIconEmoji = getBreakIcon(brk);
+
+        // Ha az útvonalról letérő szünet (pl. közeli bolt/étterem), szaggatott vonal köti össze az útvonallal
+        if (isOffRoute) {
+          L.polyline(
+            [
+              [routeCoord.lat, routeCoord.lon],
+              [markerLat, markerLon]
+            ],
+            {
+              color: '#f97316',
+              weight: 3,
+              dashArray: '5, 6',
+              opacity: 0.9
+            }
+          ).addTo(state.markersLayerGroup);
+        }
+
+        const breakIcon = L.divIcon({
+          className: 'break-div-icon',
+          html: `
+            <div class="break-marker-pill inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-amber-500 text-white border-2 border-white shadow-lg text-[11px] font-bold whitespace-nowrap">
+              <span>${brkIconEmoji}</span>
+              <span>${brk.durationMin}p</span>
+            </div>
+          `,
+          iconSize: [0, 0],
+          iconAnchor: [0, 0]
+        });
+
+        const marker = L.marker([markerLat, markerLon], {
+          icon: breakIcon,
+          draggable: true,
+          zIndexOffset: 500
+        }).addTo(state.markersLayerGroup);
+
+        const detourText = brk.detourMeters > 20
+          ? `<div class="text-[11px] text-orange-700 font-medium">↪ Kitérő az útvonaltól: ~${brk.detourMeters} m (+${Math.round(getDetourMinutes(brk))} perc)</div>`
+          : '';
+
+        marker.bindPopup(`
+          <div class="p-3.5 text-slate-800 space-y-1.5">
+            <div class="flex items-center gap-1.5 font-bold text-sm text-amber-700">
+              <span>${brkIconEmoji}</span>
+              <span>${escapeHtml(brk.label)}</span>
+            </div>
+            <div class="text-xs text-slate-600">
+              <strong>${brk.km.toFixed(1)} km</strong> • <strong>${brk.durationMin} perc</strong> pihenő
+            </div>
+            ${detourText}
+            <div class="text-xs text-slate-500">
+              Érkezés: <strong>${formatTimeHM(arrival)}</strong> → Indulás: <strong>${formatTimeHM(depart)}</strong>
+            </div>
+            <div class="text-[11px] text-slate-400 pt-1 border-t border-slate-100">
+              Húzd az ikont az útvonalon a szünet áthelyezéséhez.
+            </div>
+          </div>
+        `);
+
+        // Húzás események: útvonalra tapadás + élő tooltip + oldalsáv szinkronizálás
+        marker.on('dragstart', () => {
+          marker.closePopup();
+          const el = marker.getElement();
+          if (el) {
+            const pill = el.querySelector('.break-marker-pill');
+            if (pill) pill.classList.add('is-dragging');
+          }
+          const arrNow = calculateArrivalTimeAtKm(brk.km, false);
+          marker.bindTooltip(
+            `${brkIconEmoji} ${escapeHtml(brk.label)} • ${brk.km.toFixed(1)} km (${formatTimeHM(arrNow)})`,
+            {
+              permanent: true,
+              direction: 'top',
+              offset: [0, -18],
+              className: 'break-drag-tooltip'
+            }
+          ).openTooltip();
+        });
+
+        marker.on('drag', (e) => {
+          const pos = e.target.getLatLng();
+          // Az előző km körüli szakaszt részesítjük előnyben (körös / oda-vissza útvonalaknál)
+          const snapped = snapToRoute(pos.lat, pos.lng, {
+            hintKm: brk.km,
+            windowKm: Math.max(2, state.totalDistanceKm * 0.1)
+          });
+          marker.setLatLng([snapped.lat, snapped.lon]);
+
+          const newKm = Math.round(snapped.distKm * 10) / 10;
+          brk.km = newKm;
+          brk.customLat = null;
+          brk.customLon = null;
+          brk.detourMeters = 0;
+
+          const liveArrival = calculateArrivalTimeAtKm(newKm, false);
+          marker.setTooltipContent(
+            `${brkIconEmoji} ${escapeHtml(brk.label)} • ${newKm.toFixed(1)} km (${formatTimeHM(liveArrival)})`
+          );
+
+          // Bal oldali panel km mezőjének élő frissítése
+          const rowEl = dom.breaksContainer.querySelector(`[data-break-id="${brk.id}"]`);
+          if (rowEl) {
+            const kmInput = rowEl.querySelector('input[data-field="km"]');
+            if (kmInput) kmInput.value = newKm;
+          }
+        });
+
+        marker.on('dragend', () => {
+          const el = marker.getElement();
+          if (el) {
+            const pill = el.querySelector('.break-marker-pill');
+            if (pill) pill.classList.remove('is-dragging');
+          }
+          marker.unbindTooltip();
+          state.breaks.sort((a, b) => a.km - b.km);
+          // Az újrarajzolás eltávolítja ezt a markert, ezért kivárjuk az esemény végét
+          setTimeout(() => {
+            renderBreaksList();
+            recalculateAndRenderFromCache();
+          }, 0);
+        });
+
+        state.breakMarkers.push({ brk, marker });
+      });
+    }
+
+    // =========================================================================
+    // ÖSSZESÍTŐ ÉS IDŐVONAL RENDERELÉSE
+    // =========================================================================
+
+    function renderSummaryAndTimeline() {
+      dom.summarySection.classList.remove('hidden');
+      dom.timelineSection.classList.remove('hidden');
+
+      const totalKm = state.totalDistanceKm;
+      const speed = getAvgSpeed();
+      const totalDetourMin = state.breaks.reduce((sum, b) => sum + getDetourMinutes(b), 0);
+      const movingMinutes = (totalKm / speed) * 60 + totalDetourMin;
+      const totalBreakMin = state.breaks.reduce((sum, b) => sum + (Number(b.durationMin) || 0), 0);
+      const finalArrival = calculateArrivalTimeAtKm(totalKm, true);
+
+      dom.sumDistance.textContent = `${totalKm.toFixed(1)} km`;
+      dom.sumArrival.textContent = formatTimeWithDay(finalArrival);
+      dom.sumMovingTime.textContent = formatDurationMinutes(movingMinutes);
+      dom.sumBreakTime.textContent = totalBreakMin > 0 ? formatDurationMinutes(totalBreakMin) : '0 perc';
+
+      const validWeathers = state.samplePoints
+        .map((s) => s.weather)
+        .filter((w) => w && !w.outOfRange && typeof w.temp === 'number');
+
+      if (validWeathers.length > 0) {
+        const minT = Math.min(...validWeathers.map((w) => w.temp));
+        const maxT = Math.max(...validWeathers.map((w) => w.temp));
+        const maxRain = Math.max(...validWeathers.map((w) => w.rainProb || 0));
+        const maxWind = Math.max(...validWeathers.map((w) => w.windSpeed || 0));
+        dom.sumTempRange.textContent = `${Math.round(minT)}° – ${Math.round(maxT)}°C`;
+        dom.sumRainWind.textContent = `💧 ${Math.round(maxRain)}% • 💨 ${Math.round(maxWind)} km/h`;
+      } else {
+        dom.sumTempRange.textContent = 'Nincs adat';
+        dom.sumRainWind.textContent = '–';
+      }
+
+      // Idővonal elemek (állomások + szünetek km-rendben összefésülve)
+      const items = [];
+      state.samplePoints.forEach((s) => {
+        items.push({ type: 'sample', km: s.km, data: s });
+      });
+      state.breaks.forEach((b) => {
+        items.push({ type: 'break', km: b.km, data: b });
+      });
+      const typeRank = (t) => (t === 'sample' ? 0 : 1);
+      items.sort((a, b) => (a.km - b.km) || (typeRank(a.type) - typeRank(b.type)));
+
+      dom.timelineList.innerHTML = '';
+
+      items.forEach((item) => {
+        if (item.type === 'break') {
+          const b = item.data;
+          const { arr, dep } = getBreakTimes(b);
+          const iconEmoji = getBreakIcon(b);
+
+          const card = document.createElement('button');
+          card.type = 'button';
+          card.className = 'w-full text-left rounded-xl border border-amber-200 bg-amber-50/70 hover:bg-amber-100/70 p-2.5 transition flex items-center justify-between gap-2';
+          card.innerHTML = `
+            <div class="flex items-center gap-2.5 min-w-0">
+              <span class="w-7 h-7 rounded-lg bg-amber-500 text-white flex items-center justify-center text-sm shrink-0">${iconEmoji}</span>
+              <div class="min-w-0">
+                <p class="text-xs font-bold text-amber-900 truncate">${escapeHtml(b.label)}</p>
+                <p class="text-[11px] text-amber-700">${b.km.toFixed(1)} km • ${b.durationMin} perc pihenő</p>
+              </div>
+            </div>
+            <div class="text-right shrink-0">
+              <p class="text-xs font-bold text-amber-900">${formatTimeWithDay(arr, true)}</p>
+              <p class="text-[10px] text-amber-700">→ ${formatTimeWithDay(dep, true)}</p>
+            </div>
+          `;
+          card.addEventListener('click', () => {
+            const found = state.breakMarkers.find((bm) => bm.brk.id === b.id);
+            if (found) {
+              focusMarkerOnMap(found.marker);
+            }
+          });
+          dom.timelineList.appendChild(card);
+        } else {
+          const s = item.data;
+          const w = s.weather;
+          const isStart = s.index === 0;
+          const isEnd = s.index === state.samplePoints.length - 1;
+          const label = isStart ? 'Rajt' : (isEnd ? 'Cél' : `${s.km.toFixed(1)} km`);
+
+          let rightHtml = '<span class="text-[11px] text-slate-400">Nincs adat</span>';
+          if (w && !w.outOfRange) {
+            const wmo = getWmoDescription(w.weatherCode);
+            const blowDirDeg = (w.windDir + 180) % 360;
+            const highRain = w.rainProb > 30;
+            rightHtml = `
+              <div class="flex items-center gap-2 shrink-0">
+                <span class="text-base leading-none" title="${escapeHtml(wmo.text)}">${wmo.icon}</span>
+                <div class="text-right">
+                  <div class="text-xs font-bold text-slate-900">${Math.round(w.temp)}°C</div>
+                  <div class="text-[10px] ${highRain ? 'text-skyroute-700 font-bold' : 'text-slate-500'}">
+                    💧${Math.round(w.rainProb)}% • ${Math.round(w.windSpeed)} km/h
+                    <span class="inline-block font-bold text-skyroute-700" style="transform: rotate(${blowDirDeg}deg);">↑</span>
+                  </div>
+                </div>
+              </div>
+            `;
+          }
+
+          const card = document.createElement('button');
+          card.type = 'button';
+          card.className = 'w-full text-left rounded-xl border border-slate-200/80 bg-white hover:border-skyroute-300 hover:bg-skyroute-50/40 p-2.5 transition flex items-center justify-between gap-2';
+          card.innerHTML = `
+            <div class="flex items-center gap-2.5 min-w-0">
+              <span class="text-xs font-bold text-skyroute-700 bg-skyroute-50 border border-skyroute-100 px-2 py-1 rounded-lg shrink-0">${formatTimeWithDay(s.arrivalTime, true)}</span>
+              <div class="min-w-0">
+                <p class="text-xs font-bold text-slate-800 truncate">${label}</p>
+                <p class="text-[10px] text-slate-400">${s.km.toFixed(1)} km</p>
+              </div>
+            </div>
+            ${rightHtml}
+          `;
+          card.addEventListener('click', () => {
+            if (s.marker) {
+              focusMarkerOnMap(s.marker);
+            }
+          });
+          dom.timelineList.appendChild(card);
+        }
+      });
+    }
+
+    function focusMarkerOnMap(marker) {
+      const doFocus = () => {
+        const ll = marker.getLatLng();
+        state.map.setView(ll, Math.max(state.map.getZoom(), 13), { animate: true });
+        setTimeout(() => marker.openPopup(), 250);
+      };
+
+      // Mobilon először a térképet kell láthatóvá tenni (és méretét frissíteni), csak utána lehet rá fókuszálni
+      if (window.innerWidth < 768 && state.mobileView !== 'map') {
+        setMobileView('map', doFocus);
+      } else {
+        doFocus();
+      }
+    }
+
+    // Gyors újraszámolás cache-ből (szünet mozgatásakor/hozzáadásakor, indulás/sebesség változásakor)
+    function recalculateAndRenderFromCache() {
+      if (state.trackPoints.length < 2) return;
+      refreshSamplesFromCache(state.samplePoints);
+      renderMapMarkers();
+      if (state.pois.length > 0) renderPoisOnMap();
+      renderSummaryAndTimeline();
+      updateRangeWarning();
+    }
+
+    // Teljes előrejelzés frissítése (új mintavétel + API lekérés)
+    async function runForecastCalculation(forceRefresh = false) {
+      if (state.trackPoints.length < 2) return;
+
+      // Kérés-azonosító: csak a legutóbbi kérés eredménye kerülhet a felületre
+      const reqId = ++state.forecastRequestId;
+      setLoading(true);
+      try {
+        const samples = buildSamplePoints();
+        await ensureWeatherCached(samples, forceRefresh);
+        if (reqId !== state.forecastRequestId) return;
+
+        // A lekérés alatt módosulhattak a szünetek / indulási idő, ezért újraszámolunk a gyorsítótárból
+        refreshSamplesFromCache(samples);
+        state.samplePoints = samples;
+
+        hideBanner('forecast');
+        renderMapMarkers();
+        renderSummaryAndTimeline();
+        updateRangeWarning();
+      } catch (err) {
+        if (reqId !== state.forecastRequestId) return;
+        console.error(err);
+        showBanner('error', 'Előrejelzési hiba', err.message || 'Nem sikerült lekérni az időjárási adatokat.', 'forecast');
+      } finally {
+        if (reqId === state.forecastRequestId) {
+          setLoading(false);
+        }
+      }
+    }
+
+    // =========================================================================
+    // ÚTVONAL MENTI BOLTOK, ÉTTEREMK ÉS PRESSZÓK/KOCSMÁK (OVERPASS API)
+    // =========================================================================
+
+    function classifyPoi(tags) {
+      if (!tags) return null;
+      const shop = tags.shop;
+      const amenity = tags.amenity;
+
+      if (shop && /^(supermarket|convenience|bakery|general|grocery|greengrocer|kiosk|butcher|beverages|alcohol)$/.test(shop)) {
+        const labelMap = {
+          supermarket: 'Szupermarket',
+          convenience: 'Kisbolt',
+          bakery: 'Pékség',
+          general: 'Vegyesbolt',
+          grocery: 'Élelmiszerbolt',
+          greengrocer: 'Zöldséges',
+          kiosk: 'Kioszk',
+          butcher: 'Hentes',
+          beverages: 'Italbolt',
+          alcohol: 'Szeszesital-bolt'
+        };
+        return {
+          category: 'shop',
+          icon: '🛒',
+          typeLabel: labelMap[shop] || 'Bolt',
+          badgeClass: 'bg-emerald-500 border-white text-white'
+        };
+      }
+
+      if (amenity && /^(restaurant|fast_food|food_court)$/.test(amenity)) {
+        const labelMap = {
+          restaurant: 'Étterem',
+          fast_food: 'Gyorsétterem / Büfé',
+          food_court: 'Ételudvar'
+        };
+        return {
+          category: 'restaurant',
+          icon: '🍽️',
+          typeLabel: labelMap[amenity] || 'Étterem',
+          badgeClass: 'bg-orange-500 border-white text-white'
+        };
+      }
+
+      if (amenity && /^(pub|bar|cafe|biergarten)$/.test(amenity)) {
+        const labelMap = {
+          pub: 'Kocsma / Presszó',
+          bar: 'Bár / Presszó',
+          cafe: 'Kávézó / Presszó',
+          biergarten: 'Sörkert'
+        };
+        return {
+          category: 'pub',
+          icon: amenity === 'cafe' ? '☕' : '🍺',
+          typeLabel: labelMap[amenity] || 'Presszó / Kocsma',
+          badgeClass: 'bg-amber-600 border-white text-white'
+        };
+      }
+
+      if (amenity === 'ice_cream' || (shop && /^(confectionery|pastry|ice_cream)$/.test(shop))) {
+        const isIce = amenity === 'ice_cream' || shop === 'ice_cream';
+        const labelMap = {
+          ice_cream: 'Fagyizó',
+          confectionery: 'Cukrászda / Édességbolt',
+          pastry: 'Cukrászda / Péksütemény'
+        };
+        return {
+          category: 'sweets',
+          icon: isIce ? '🍦' : '🍰',
+          typeLabel: labelMap[amenity || shop] || 'Cukrászda / Fagyizó',
+          badgeClass: 'bg-pink-500 border-white text-white'
+        };
+      }
+
+      if (amenity === 'drinking_water') {
+        return {
+          category: 'water',
+          icon: '🚰',
+          typeLabel: 'Ivókút',
+          badgeClass: 'bg-cyan-500 border-white text-white'
+        };
+      }
+
+      return null;
+    }
+
+    function updatePoiCounters() {
+      let shopCount = 0;
+      let restCount = 0;
+      let pubCount = 0;
+      let sweetsCount = 0;
+      let waterCount = 0;
+      state.pois.forEach((p) => {
+        if (p.category === 'shop') shopCount++;
+        else if (p.category === 'restaurant') restCount++;
+        else if (p.category === 'pub') pubCount++;
+        else if (p.category === 'sweets') sweetsCount++;
+        else if (p.category === 'water') waterCount++;
+      });
+      dom.poiCountShop.textContent = shopCount;
+      dom.poiCountRestaurant.textContent = restCount;
+      dom.poiCountPub.textContent = pubCount;
+      dom.poiCountSweets.textContent = sweetsCount;
+      dom.poiCountWater.textContent = waterCount;
+    }
+
+    function updatePoiFilterButtonStyles() {
+      const configs = [
+        { btn: dom.poiToggleShop, cat: 'shop', active: 'bg-emerald-50 border-emerald-300 text-emerald-800' },
+        { btn: dom.poiToggleRestaurant, cat: 'restaurant', active: 'bg-orange-50 border-orange-300 text-orange-800' },
+        { btn: dom.poiTogglePub, cat: 'pub', active: 'bg-amber-50 border-amber-300 text-amber-800' },
+        { btn: dom.poiToggleSweets, cat: 'sweets', active: 'bg-pink-50 border-pink-300 text-pink-800' },
+        { btn: dom.poiToggleWater, cat: 'water', active: 'bg-cyan-50 border-cyan-300 text-cyan-800' }
+      ];
+      configs.forEach(({ btn, cat, active }) => {
+        const isOn = state.poiFilters[cat];
+        btn.className = `poi-filter-btn inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-[11px] font-semibold border transition ${
+          isOn ? active : 'bg-slate-100 border-slate-200 text-slate-400 opacity-70'
+        }`;
+      });
+    }
+
+    /**
+     * OSM opening_hours érték kiértékelése a várható érkezési időpontra (opening_hours.js).
+     * Hibás vagy hiányzó adatnál biztonságosan "unknown" állapotot ad vissza.
+     */
+    function evaluateOpeningHours(openingHoursStr, arrivalDate, lat, lon) {
+      if (!openingHoursStr || !openingHoursStr.trim()) {
+        return { status: 'none', label: 'Nincs nyitvatartási adat', detail: '', raw: '' };
+      }
+      if (typeof window.opening_hours !== 'function') {
+        return { status: 'unknown', label: 'Nyitvatartás', detail: '', raw: openingHoursStr };
+      }
+
+      try {
+        const oh = new window.opening_hours(
+          openingHoursStr,
+          { lat, lon, address: { country_code: 'hu', state: '' } },
+          { locale: 'hu' }
+        );
+        const isOpen = oh.getState(arrivalDate);
+        const isUnknown = oh.getUnknown(arrivalDate);
+        const comment = oh.getComment(arrivalDate) || '';
+        const nextChange = oh.getNextChange(arrivalDate);
+
+        let changeText = '';
+        if (nextChange instanceof Date && !isNaN(nextChange.getTime())) {
+          const diffHours = (nextChange.getTime() - arrivalDate.getTime()) / 3600000;
+          if (diffHours > 0 && diffHours <= 24) {
+            const action = isOpen ? 'zárás' : 'nyitás';
+            changeText = `${action}: ${formatTimeHM(nextChange)}`;
+          }
+        }
+
+        if (isUnknown) {
+          return {
+            status: 'maybe',
+            label: 'Bizonytalan nyitvatartás',
+            detail: comment || changeText,
+            raw: openingHoursStr
+          };
+        }
+        if (isOpen) {
+          return {
+            status: 'open',
+            label: 'Nyitva az érkezéskor',
+            detail: [changeText, comment].filter(Boolean).join(' • '),
+            raw: openingHoursStr
+          };
+        }
+        return {
+          status: 'closed',
+          label: 'Zárva az érkezéskor',
+          detail: [changeText, comment].filter(Boolean).join(' • '),
+          raw: openingHoursStr
+        };
+      } catch (e) {
+        return {
+          status: 'unknown',
+          label: 'Nem értelmezhető nyitvatartás',
+          detail: '',
+          raw: openingHoursStr
+        };
+      }
+    }
+
+    // Útvonal menti POI-k (boltok, éttermek, presszók/kocsmák) megjelenítése és szünet-beállító popup
+    function renderPoisOnMap() {
+      state.poiLayerGroup.clearLayers();
+
+      state.pois.forEach((poi) => {
+        if (!state.poiFilters[poi.category]) return;
+
+        // Várható érkezési idő a POI-hoz (beleértve az oda vezető kitérőt)
+        const baseArrival = calculateArrivalTimeAtKm(poi.routeKm, false);
+        const oneWayDetourMin = poi.detourMeters > 20
+          ? ((poi.detourMeters / 1000) / getAvgSpeed()) * 60
+          : 0;
+        const poiArrival = new Date(baseArrival.getTime() + oneWayDetourMin * 60000);
+        const ohInfo = evaluateOpeningHours(poi.openingHours, poiArrival, poi.lat, poi.lon);
+
+        // Kis nyitva/zárva állapotpötty a POI ikon jobb alsó sarkán
+        let statusDotHtml = '';
+        if (ohInfo.status === 'open') {
+          statusDotHtml = '<span class="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full bg-emerald-500 border border-white shadow-sm"></span>';
+        } else if (ohInfo.status === 'closed') {
+          statusDotHtml = '<span class="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full bg-rose-500 border border-white shadow-sm"></span>';
+        } else if (ohInfo.status === 'maybe') {
+          statusDotHtml = '<span class="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full bg-amber-400 border border-white shadow-sm"></span>';
+        }
+
+        const badgeTitle = ohInfo.status !== 'none'
+          ? `${poi.name} – ${ohInfo.label} (${formatTimeHM(poiArrival)})`
+          : poi.name;
+
+        // A középre igazítást a .poi-marker-badge CSS "translate" tulajdonsága végzi
+        const icon = L.divIcon({
+          className: 'poi-div-icon',
+          html: `
+            <div class="poi-marker-badge relative w-7 h-7 rounded-full border-2 shadow-md flex items-center justify-center text-xs ${poi.badgeClass} ${ohInfo.status === 'closed' ? 'opacity-75' : ''}" title="${escapeHtml(badgeTitle)}">
+              <span>${poi.icon}</span>
+              ${statusDotHtml}
+            </div>
+          `,
+          iconSize: [0, 0],
+          iconAnchor: [0, 0]
+        });
+
+        const marker = L.marker([poi.lat, poi.lon], {
+          icon,
+          zIndexOffset: 200
+        }).addTo(state.poiLayerGroup);
+
+        let openingHtml = '';
+        if (ohInfo.status === 'open') {
+          openingHtml = `
+            <div class="rounded-lg bg-emerald-50 border border-emerald-200 px-2.5 py-1.5 space-y-0.5">
+              <div class="text-[11px] font-bold text-emerald-800 flex items-center gap-1.5">
+                <span class="w-2 h-2 rounded-full bg-emerald-500 inline-block shrink-0"></span>
+                <span>${escapeHtml(ohInfo.label)}</span>
+              </div>
+              ${ohInfo.detail ? `<div class="text-[10px] text-emerald-700">${escapeHtml(ohInfo.detail)}</div>` : ''}
+              <div class="text-[10px] text-slate-500 truncate" title="${escapeHtml(ohInfo.raw)}">🕒 ${escapeHtml(ohInfo.raw)}</div>
+            </div>
+          `;
+        } else if (ohInfo.status === 'closed') {
+          openingHtml = `
+            <div class="rounded-lg bg-rose-50 border border-rose-200 px-2.5 py-1.5 space-y-0.5">
+              <div class="text-[11px] font-bold text-rose-800 flex items-center gap-1.5">
+                <span class="w-2 h-2 rounded-full bg-rose-500 inline-block shrink-0"></span>
+                <span>${escapeHtml(ohInfo.label)}</span>
+              </div>
+              ${ohInfo.detail ? `<div class="text-[10px] text-rose-700">${escapeHtml(ohInfo.detail)}</div>` : ''}
+              <div class="text-[10px] text-slate-500 truncate" title="${escapeHtml(ohInfo.raw)}">🕒 ${escapeHtml(ohInfo.raw)}</div>
+            </div>
+          `;
+        } else if (ohInfo.status === 'maybe') {
+          openingHtml = `
+            <div class="rounded-lg bg-amber-50 border border-amber-200 px-2.5 py-1.5 space-y-0.5">
+              <div class="text-[11px] font-bold text-amber-800 flex items-center gap-1.5">
+                <span class="w-2 h-2 rounded-full bg-amber-400 inline-block shrink-0"></span>
+                <span>${escapeHtml(ohInfo.label)}</span>
+              </div>
+              ${ohInfo.detail ? `<div class="text-[10px] text-amber-700">${escapeHtml(ohInfo.detail)}</div>` : ''}
+              <div class="text-[10px] text-slate-500 truncate" title="${escapeHtml(ohInfo.raw)}">🕒 ${escapeHtml(ohInfo.raw)}</div>
+            </div>
+          `;
+        } else if (ohInfo.raw) {
+          openingHtml = `<div class="text-[11px] text-slate-500">🕒 Nyitvatartás: <span class="font-medium text-slate-700">${escapeHtml(ohInfo.raw)}</span></div>`;
+        } else {
+          openingHtml = `<div class="text-[11px] text-slate-400 italic">🕒 Nincs nyitvatartási adat az OSM-ben</div>`;
+        }
+
+        const detourText = poi.detourMeters > 20
+          ? `~${poi.detourMeters} m kitérő`
+          : 'közvetlenül az útvonalon';
+
+        const safeId = poi.id.replace(/[^a-zA-Z0-9_]/g, '_');
+        const popupId = `poi_btn_${safeId}`;
+        const inputId = `poi_dur_${safeId}`;
+
+        const popupHtml = `
+          <div class="p-3.5 text-slate-800 space-y-2.5">
+            <div class="flex items-start gap-2">
+              <span class="text-lg leading-none mt-0.5">${poi.icon}</span>
+              <div class="min-w-0">
+                <div class="font-bold text-sm text-slate-900 leading-snug">${escapeHtml(poi.name)}</div>
+                <div class="text-[11px] text-slate-500">${escapeHtml(poi.typeLabel)}</div>
+              </div>
+            </div>
+            <div class="text-xs text-slate-600 bg-slate-50 border border-slate-100 rounded-lg px-2.5 py-1.5 space-y-0.5">
+              <div>📍 <strong>${poi.routeKm.toFixed(1)} km</strong> közelében (${detourText})</div>
+              <div class="text-[11px] text-slate-500">⏱️ Várható érkezés: <strong class="text-slate-800">${formatTimeWithDay(poiArrival)}</strong></div>
+            </div>
+            ${openingHtml}
+            <div class="pt-1 border-t border-slate-100 space-y-2">
+              <div class="flex items-center justify-between gap-2">
+                <label for="${inputId}" class="text-xs font-medium text-slate-600">Pihenő hossza (perc):</label>
+                <input
+                  id="${inputId}"
+                  type="number"
+                  min="5"
+                  max="240"
+                  step="5"
+                  value="20"
+                  class="w-20 rounded-lg border border-slate-300 px-2 py-1 text-xs font-semibold text-slate-800 focus:outline-none focus:ring-2 focus:ring-amber-400"
+                />
+              </div>
+              <button
+                id="${popupId}"
+                type="button"
+                class="w-full py-2 px-3 rounded-lg bg-amber-500 hover:bg-amber-600 text-white font-semibold text-xs transition shadow-sm flex items-center justify-center gap-1.5"
+              >
+                <span>${poi.icon}</span>
+                <span>Szünet beállítása ide</span>
+              </button>
+            </div>
+          </div>
+        `;
+
+        marker.bindPopup(popupHtml, { maxWidth: 260 });
+
+        marker.on('popupopen', () => {
+          const btn = document.getElementById(popupId);
+          const durInput = document.getElementById(inputId);
+          if (btn) {
+            btn.onclick = () => {
+              const mins = Math.max(1, parseInt(durInput ? durInput.value : '20', 10) || 20);
+              addBreak(poi.routeKm, mins, poi.name, {
+                customLat: poi.lat,
+                customLon: poi.lon,
+                detourMeters: poi.detourMeters,
+                poiCategory: poi.category,
+                poiIcon: poi.icon
+              });
+              marker.closePopup();
+            };
+          }
+        });
+      });
+    }
+
+    // -------------------------------------------------------------------------
+    // POI gyorsítótár (localStorage)
+    //
+    // Csak a nyers, "karcsúsított" Overpass elemeket tároljuk (tags + koordináta),
+    // az útvonalfüggő értékeket (routeKm, detourMeters) mindig az aktuális útvonalból
+    // számoljuk. Külön index tartja nyilván a bejegyzések időbélyegét, a lejárt
+    // és a felesleges bejegyzések törlődnek, így a tárhely nem telik meg csendben.
+    // -------------------------------------------------------------------------
+    const POI_CACHE_PREFIX = 'gpx_poi_cache_v5_';
+    const POI_CACHE_INDEX_KEY = 'gpx_poi_cache_v5_index';
+    const POI_CACHE_LEGACY_PREFIXES = ['gpx_poi_cache_v1_', 'gpx_poi_cache_v2_', 'gpx_poi_cache_v3_', 'gpx_poi_cache_v4_'];
+    const POI_CACHE_TTL_MS = 24 * 60 * 60 * 1000; // 24 óra
+    const POI_CACHE_MAX_ENTRIES = 4;
+
+    function readPoiCacheIndex() {
+      try {
+        const raw = localStorage.getItem(POI_CACHE_INDEX_KEY);
+        const parsed = raw ? JSON.parse(raw) : {};
+        return (parsed && typeof parsed === 'object') ? parsed : {};
+      } catch (e) {
+        return {};
+      }
+    }
+
+    function writePoiCacheIndex(idx) {
+      try {
+        localStorage.setItem(POI_CACHE_INDEX_KEY, JSON.stringify(idx));
+      } catch (e) { /* iframe / privát mód / kvóta: figyelmen kívül hagyjuk */ }
+    }
+
+    function removePoiCacheEntry(key) {
+      try { localStorage.removeItem(POI_CACHE_PREFIX + key); } catch (e) { /* nem kritikus */ }
+    }
+
+    function prunePoiCache(idx) {
+      const now = Date.now();
+      Object.keys(idx).forEach((k) => {
+        if (typeof idx[k] !== 'number' || now - idx[k] > POI_CACHE_TTL_MS) {
+          removePoiCacheEntry(k);
+          delete idx[k];
+        }
+      });
+      Object.keys(idx)
+        .sort((a, b) => idx[b] - idx[a])
+        .slice(POI_CACHE_MAX_ENTRIES)
+        .forEach((k) => {
+          removePoiCacheEntry(k);
+          delete idx[k];
+        });
+    }
+
+    // A korábbi (v1, v2) formátumú bejegyzések egyszeri törlése
+    function cleanupLegacyPoiCache() {
+      try {
+        for (let i = localStorage.length - 1; i >= 0; i--) {
+          const k = localStorage.key(i);
+          if (k && POI_CACHE_LEGACY_PREFIXES.some((p) => k.startsWith(p))) {
+            localStorage.removeItem(k);
+          }
+        }
+      } catch (e) { /* nem kritikus */ }
+    }
+
+    // Merőleges távolság (km) egy pont és egy szakasz között (RDP ritkításhoz)
+    function pointToSegmentDistanceKm(p, a, b) {
+      const cosLat = Math.cos((p.lat * Math.PI) / 180);
+      const px = p.lon * cosLat;
+      const py = p.lat;
+      const ax = a.lon * cosLat;
+      const ay = a.lat;
+      const bx = b.lon * cosLat;
+      const by = b.lat;
+
+      const abx = bx - ax;
+      const aby = by - ay;
+      const abLenSq = abx * abx + aby * aby;
+      let t = 0;
+      if (abLenSq > 0) {
+        t = Math.max(0, Math.min(1, ((px - ax) * abx + (py - ay) * aby) / abLenSq));
+      }
+      const dx = px - (ax + t * abx);
+      const dy = py - (ay + t * aby);
+      return Math.sqrt(dx * dx + dy * dy) * 111.32;
+    }
+
+    // Ramer–Douglas–Peucker útvonal-ritkítás (Overpass around: szűrőhöz)
+    function simplifyRouteRdp(points, toleranceKm) {
+      if (points.length <= 2) return points.slice();
+
+      let maxDist = -1;
+      let maxIdx = 0;
+      const first = points[0];
+      const last = points[points.length - 1];
+
+      for (let i = 1; i < points.length - 1; i++) {
+        const d = pointToSegmentDistanceKm(points[i], first, last);
+        if (d > maxDist) {
+          maxDist = d;
+          maxIdx = i;
+        }
+      }
+
+      if (maxDist > toleranceKm) {
+        const left = simplifyRouteRdp(points.slice(0, maxIdx + 1), toleranceKm);
+        const right = simplifyRouteRdp(points.slice(maxIdx), toleranceKm);
+        return left.slice(0, -1).concat(right);
+      }
+      return [first, last];
+    }
+
+    /**
+     * Az útvonal ritkítása legfeljebb maxPoints pontra az Overpass around: lekérdezéshez.
+     * Ha a pontszám meghaladja a limitet, fokozatosan növeli az RDP tűrést, így a
+     * lekérdezés rövid és gyors marad, miközben pontosan követi az útvonal alakját.
+     */
+    function buildDownsampledRouteCoords(maxPoints = 48) {
+      const pts = state.trackPoints;
+      if (pts.length <= maxPoints) return pts;
+
+      // Először durva távolságalapú előszűrés (nagyon sűrű, több ezer pontos GPX-ekhez)
+      const prefiltered = [pts[0]];
+      const preStepKm = Math.max(0.08, state.totalDistanceKm / 400);
+      for (let i = 1; i < pts.length - 1; i++) {
+        if (pts[i].distKm - prefiltered[prefiltered.length - 1].distKm >= preStepKm) {
+          prefiltered.push(pts[i]);
+        }
+      }
+      prefiltered.push(pts[pts.length - 1]);
+
+      if (prefiltered.length <= maxPoints) return prefiltered;
+
+      let tol = 0.12; // 120 m kezdő tűrés
+      let simplified = simplifyRouteRdp(prefiltered, tol);
+      while (simplified.length > maxPoints && tol < 5.0) {
+        tol *= 1.35;
+        simplified = simplifyRouteRdp(prefiltered, tol);
+      }
+
+      // Végső biztosíték, ha mégis több pont maradt
+      if (simplified.length > maxPoints) {
+        const out = [simplified[0]];
+        const stride = (simplified.length - 1) / (maxPoints - 1);
+        for (let k = 1; k < maxPoints - 1; k++) {
+          out.push(simplified[Math.round(k * stride)]);
+        }
+        out.push(simplified[simplified.length - 1]);
+        return out;
+      }
+      return simplified;
+    }
+
+    // Gyors, determinisztikus FNV-1a ujjlenyomat a gyorsítótár kulcsához
+    function hashString(str) {
+      let h = 2166136261;
+      for (let i = 0; i < str.length; i++) {
+        h ^= str.charCodeAt(i);
+        h = Math.imul(h, 16777619);
+      }
+      return (h >>> 0).toString(36);
+    }
+
+    function readPoiCache(cacheKey) {
+      try {
+        const idx = readPoiCacheIndex();
+        const ts = idx[cacheKey];
+        if (typeof ts !== 'number' || Date.now() - ts > POI_CACHE_TTL_MS) return null;
+
+        const raw = localStorage.getItem(POI_CACHE_PREFIX + cacheKey);
+        if (!raw) return null;
+        const parsed = JSON.parse(raw);
+        if (!parsed || !Array.isArray(parsed.elements)) return null;
+        return parsed.elements;
+      } catch (e) {
+        // Google Sites iframe vagy privát mód esetén a localStorage korlátozott lehet
+        return null;
+      }
+    }
+
+    function writePoiCache(cacheKey, elements) {
+      try {
+        const idx = readPoiCacheIndex();
+        idx[cacheKey] = Date.now();
+        prunePoiCache(idx);
+        localStorage.setItem(POI_CACHE_PREFIX + cacheKey, JSON.stringify({ elements }));
+        writePoiCacheIndex(idx);
+      } catch (e) {
+        // Kvóta túllépés vagy iframe korlátozás esetén csendben figyelmen kívül hagyjuk
+      }
+    }
+
+    // Az Overpass elemek karcsúsítása: csak a szükséges mezők maradnak
+    function slimOverpassElements(elements) {
+      const slim = [];
+      elements.forEach((el) => {
+        const lat = typeof el.lat === 'number' ? el.lat : el.center?.lat;
+        const lon = typeof el.lon === 'number' ? el.lon : el.center?.lon;
+        if (typeof lat !== 'number' || typeof lon !== 'number') return;
+        if (!classifyPoi(el.tags)) return;
+
+        const t = el.tags || {};
+        const tags = {};
+        ['shop', 'amenity', 'name', 'brand', 'opening_hours'].forEach((k) => {
+          if (t[k]) tags[k] = t[k];
+        });
+        slim.push({ type: el.type, id: el.id, lat, lon, tags });
+      });
+      return slim;
+    }
+
+    // A karcsúsított elemekből az aktuális útvonalhoz tartozó POI lista építése
+    function buildPoisFromElements(elements, maxDetourMeters = state.poiRadiusMeters) {
+      const MAX_DETOUR_METERS = Number(maxDetourMeters) || 1200;
+      const seen = new Set();
+      const parsedPois = [];
+
+      elements.forEach((el) => {
+        const info = classifyPoi(el.tags);
+        if (!info) return;
+
+        // Pontos távolság az útvonaltól – csak a ténylegesen 1,2 km-en belüli helyeket tartjuk meg
+        const snapped = snapToRoute(el.lat, el.lon);
+        const detourMeters = Math.round(haversineKm(el.lat, el.lon, snapped.lat, snapped.lon) * 1000);
+        if (detourMeters > MAX_DETOUR_METERS) return;
+
+        // Duplikációk kiszűrése közeli koordináta + név alapján
+        const rawName = (el.tags.name || el.tags.brand || '').trim();
+        const dedupeKey = `${info.category}_${el.lat.toFixed(4)}_${el.lon.toFixed(4)}_${rawName}`;
+        if (seen.has(dedupeKey)) return;
+        seen.add(dedupeKey);
+
+        parsedPois.push({
+          id: `${el.type}_${el.id}`,
+          lat: el.lat,
+          lon: el.lon,
+          name: rawName || info.typeLabel,
+          openingHours: el.tags.opening_hours || '',
+          routeKm: Math.round(snapped.distKm * 10) / 10,
+          detourMeters,
+          ...info
+        });
+      });
+
+      return parsedPois;
+    }
+
+    function delay(ms) {
+      return new Promise((resolve) => setTimeout(resolve, ms));
+    }
+
+    // Segédfüggvény: egy Overpass QL lekérdezés futtatása több globális tükörszerveren lépcsőzetesen
+    async function runOverpassQuery(query, endpoints, clientTimeoutMs = 18000, staggerMs = 1000) {
+      const controllers = [];
+      const timeouts = [];
+      const errorReasons = [];
+      let settled = false;
+      let emptyFallback = null;
+
+      const requests = endpoints.map(async (endpoint, i) => {
+        const host = new URL(endpoint).hostname;
+
+        if (i > 0) {
+          await delay(i * staggerMs);
+          if (settled) {
+            const skipped = new Error('skipped');
+            skipped.name = 'Skipped';
+            throw skipped;
+          }
+        }
+
+        const controller = new AbortController();
+        controllers.push(controller);
+        const timeoutId = setTimeout(() => controller.abort(), clientTimeoutMs);
+        timeouts.push(timeoutId);
+
+        const url = `${endpoint}?data=${encodeURIComponent(query)}`;
+
+        try {
+          const res = await fetch(url, {
+            method: 'GET',
+            mode: 'cors',
+            referrerPolicy: 'no-referrer',
+            signal: controller.signal
+          });
+          if (!res.ok) {
+            const reason = `${host}: HTTP ${res.status}`;
+            errorReasons.push(reason);
+            throw new Error(reason);
+          }
+          const json = await res.json();
+          if (!json || !Array.isArray(json.elements)) {
+            const reason = `${host}: érvénytelen válasz`;
+            errorReasons.push(reason);
+            throw new Error(reason);
+          }
+          if (json.elements.length === 0) {
+            emptyFallback = json;
+            const reason = `${host}: 0 találat`;
+            errorReasons.push(reason);
+            throw new Error(reason);
+          }
+          return { json, winnerController: controller };
+        } catch (err) {
+          if (err.name === 'AbortError') {
+            errorReasons.push(`${host}: időtúllépés (${Math.round(clientTimeoutMs / 1000)} mp)`);
+          } else if (!errorReasons.some((r) => r.startsWith(host))) {
+            errorReasons.push(`${host}: hálózati/CORS hiba`);
+          }
+          throw err;
+        }
+      });
+
+      try {
+        const result = await Promise.any(requests);
+        settled = true;
+        controllers.forEach((ctrl) => {
+          if (ctrl !== result.winnerController) {
+            try { ctrl.abort(); } catch (e) { /* nem kritikus */ }
+          }
+        });
+        return { data: result.json, errorReasons };
+      } catch (aggErr) {
+        settled = true;
+        return { data: emptyFallback, errorReasons };
+      } finally {
+        timeouts.forEach((id) => clearTimeout(id));
+      }
+    }
+
+    // Overpass API lekérdezés: gyorsított 20 pontos around: + globális [bbox:...] előszűrés,
+    // terhelés esetén automatikus bbox tartalékkal és localStorage gyorsítótárral
+    async function fetchPoisAlongRoute(forceRefresh = false) {
+      if (state.trackPoints.length < 2) return;
+
+      const reqId = ++state.poiRequestId;
+
+      dom.poiControlBar.classList.remove('hidden');
+      dom.poiLoadingBadge.classList.remove('hidden');
+      dom.poiErrorBadge.classList.add('hidden');
+      dom.poiRetryBtn.classList.add('hidden');
+      state.poiLayerGroup.clearLayers();
+      state.pois = [];
+      updatePoiCounters();
+
+      const radiusMeters = state.poiRadiusMeters || 1200;
+
+      // Ha a memóriában már van legalább ekkora sugárra letöltött adat ehhez az útvonalhoz, azonnal újraszűrünk
+      if (!forceRefresh && state.rawPoiElements && state.rawPoiRadius >= radiusMeters) {
+        state.pois = buildPoisFromElements(state.rawPoiElements, radiusMeters);
+        dom.poiLoadingBadge.classList.add('hidden');
+        dom.poiRetryBtn.classList.remove('hidden');
+        updatePoiCounters();
+        renderPoisOnMap();
+        return;
+      }
+
+      // Befoglaló téglalap (spatial index előszűréshez és tartalékhoz) a választott sugárnak megfelelő margóval
+      let minLat = Infinity, maxLat = -Infinity, minLon = Infinity, maxLon = -Infinity;
+      for (let i = 0; i < state.trackPoints.length; i++) {
+        const p = state.trackPoints[i];
+        if (p.lat < minLat) minLat = p.lat;
+        if (p.lat > maxLat) maxLat = p.lat;
+        if (p.lon < minLon) minLon = p.lon;
+        if (p.lon > maxLon) maxLon = p.lon;
+      }
+      const queryRadius = radiusMeters + 400; // +400 m ráhagyás az RDP ritkítás kompenzálására
+      const padLat = Math.max(0.01, queryRadius / 111000);
+      const padLon = Math.max(0.014, queryRadius / 74000);
+      const bbox = `${(minLat - padLat).toFixed(4)},${(minLon - padLon).toFixed(4)},${(maxLat + padLat).toFixed(4)},${(maxLon + padLon).toFixed(4)}`;
+
+      // Erősebben ritkított útvonalpontok (max 20 pont -> töredék szerveridő az around: szűrőnél)
+      const sampledRoute = buildDownsampledRouteCoords(20);
+      const coordListStr = sampledRoute
+        .map((p) => `${p.lat.toFixed(4)},${p.lon.toFixed(4)}`)
+        .join(',');
+      const routeCacheKey = `around20_r${radiusMeters}_${hashString(coordListStr)}_${Math.round(state.totalDistanceKm * 10)}`;
+
+      // 1. Gyorsítótár ellenőrzése (ha nem kényszerített frissítés)
+      if (!forceRefresh) {
+        const cachedElements = readPoiCache(routeCacheKey);
+        if (cachedElements) {
+          state.rawPoiElements = cachedElements;
+          state.rawPoiRadius = radiusMeters;
+          state.pois = buildPoisFromElements(cachedElements, radiusMeters);
+          dom.poiLoadingBadge.classList.add('hidden');
+          dom.poiRetryBtn.classList.remove('hidden');
+          updatePoiCounters();
+          renderPoisOnMap();
+          return;
+        }
+      }
+
+      // Globális adatbázissal rendelkező, független Overpass tükörszerverek
+      const endpoints = [
+        'https://overpass-api.de/api/interpreter',
+        'https://overpass.private.coffee/api/interpreter',
+        'https://overpass.kumi.systems/api/interpreter'
+      ];
+
+      const shopRegex = '^(supermarket|convenience|bakery|general|grocery|greengrocer|kiosk|butcher|beverages|alcohol|confectionery|pastry|ice_cream)$';
+      const amenityRegex = '^(restaurant|fast_food|food_court|pub|bar|cafe|biergarten|ice_cream|drinking_water)$';
+
+      // 2/A. Elsődleges lekérdezés: globális [bbox:...] + 20 pontos around + könnyű "out tags center"
+      const aroundFilter = `around:${queryRadius},${coordListStr}`;
+      const aroundQuery = `[out:json][timeout:16][bbox:${bbox}];(nw(${aroundFilter})["shop"~"${shopRegex}"];nw(${aroundFilter})["amenity"~"${amenityRegex}"];);out tags center 1800;`;
+
+      let { data, errorReasons } = await runOverpassQuery(aroundQuery, endpoints, 18000, 1000);
+
+      // 2/B. Ha az around: minden szerveren lassú/sikertelen volt, gyors bbox tartalék lekérdezés
+      // (a kliensoldali buildPoisFromElements ekkor is pontosan radiusMeters távolságra szűr)
+      if ((!data || !Array.isArray(data.elements)) && reqId === state.poiRequestId) {
+        console.warn('Az around: Overpass lekérdezés sikertelen, gyors bbox tartalék indítása:', errorReasons);
+        const bboxQuery = `[out:json][timeout:15][bbox:${bbox}];(nw["shop"~"${shopRegex}"];nw["amenity"~"${amenityRegex}"];);out tags center 1800;`;
+        const fallbackRes = await runOverpassQuery(bboxQuery, endpoints, 16000, 1000);
+        data = fallbackRes.data;
+        errorReasons = fallbackRes.errorReasons;
+      }
+
+      if (reqId === state.poiRequestId) {
+        dom.poiLoadingBadge.classList.add('hidden');
+        dom.poiRetryBtn.classList.remove('hidden');
+      } else {
+        return;
+      }
+
+      if (!data || !Array.isArray(data.elements)) {
+        console.warn('Minden Overpass tükörszerver sikertelen:', errorReasons);
+        const details = errorReasons.length > 0 ? errorReasons.slice(0, 3).join(', ') : 'nincs válasz';
+        dom.poiErrorBadge.title = `Egyik térképes helyadatbázis-szerver sem válaszolt érvényesen (${details}). Kattints az „Újra” gombra!`;
+        dom.poiErrorBadge.classList.remove('hidden');
+        return;
+      }
+
+      const slim = slimOverpassElements(data.elements);
+      writePoiCache(routeCacheKey, slim);
+
+      state.rawPoiElements = slim;
+      state.rawPoiRadius = radiusMeters;
+      state.pois = buildPoisFromElements(slim, radiusMeters);
+      updatePoiCounters();
+      renderPoisOnMap();
+    }
+
+    // =========================================================================
+    // GPX BETÖLTÉS ÉS ESEMÉNYKEZELŐK
+    // =========================================================================
+
+    async function loadGpxContent(xmlText, fileName) {
+      hideBanner();
+      try {
+        const parsed = parseGpxText(xmlText, fileName);
+
+        // Futó előrejelzés-lekérések érvénytelenítése, a régi útvonal elemeinek törlése
+        state.forecastRequestId++;
+        state.routeName = parsed.routeName;
+        state.trackPoints = parsed.points;
+        state.totalDistanceKm = parsed.totalKm;
+        state.weatherCache.clear();
+        state.rawPoiElements = null;
+        state.rawPoiRadius = 0;
+        state.samplePoints = [];
+        state.breakMarkers = [];
+        state.markersLayerGroup.clearLayers();
+
+        // Az előző útvonal POI-hoz kötött (útvonalról letérő) szünetei nem érvényesek az új útvonalon,
+        // a sima km-alapú szüneteket megtartjuk (ha beleesnek az új távba).
+        state.breaks = state.breaks
+          .filter((b) => b.customLat === null || b.customLat === undefined)
+          .filter((b) => b.km <= parsed.totalKm);
+
+        renderBreaksList();
+
+        dom.loadedFileBadge.textContent = `${parsed.routeName} (${parsed.totalKm.toFixed(1)} km)`;
+        dom.loadedFileBadge.classList.remove('hidden');
+        dom.mobileRouteSubtitle.textContent = `${parsed.routeName} • ${parsed.totalKm.toFixed(1)} km`;
+        dom.refreshForecastBtn.disabled = false;
+
+        drawRoutePolyline();
+
+        // Párhuzamosan indul az időjárás és az útvonal menti POI-k lekérése
+        fetchPoisAlongRoute().catch((err) => {
+          console.error(err);
+          dom.poiLoadingBadge.classList.add('hidden');
+          dom.poiRetryBtn.classList.remove('hidden');
+          dom.poiErrorBadge.classList.remove('hidden');
+        });
+        await runForecastCalculation(true);
+      } catch (err) {
+        console.error(err);
+        showBanner('error', 'GPX betöltési hiba', err.message || 'Nem sikerült feldolgozni a GPX fájlt.');
+      }
+    }
+
+    function handleUploadedFile(file) {
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const text = e.target.result;
+        loadGpxContent(text, file.name);
+      };
+      reader.onerror = () => {
+        showBanner('error', 'Fájl olvasási hiba', 'Nem sikerült beolvasni a kiválasztott fájlt.');
+      };
+      reader.readAsText(file, 'UTF-8');
+    }
+
+    // Mobil nézetváltás. A callback a térkép méretének frissítése után fut le.
+    function setMobileView(view, onReady) {
+      state.mobileView = view;
+      if (view === 'map') {
+        dom.sidebarPanel.classList.add('hidden', 'md:flex');
+        dom.mapWrapper.classList.remove('hidden');
+        dom.mobileToggleText.textContent = 'Beállítások';
+        setTimeout(() => {
+          if (state.map) {
+            state.map.invalidateSize();
+            // Ha az útvonal rejtett térképnél lett kirajzolva, most illesztjük a nézetet
+            if (state.pendingFit) fitRouteToView();
+          }
+          if (typeof onReady === 'function') onReady();
+        }, 100);
+      } else {
+        dom.sidebarPanel.classList.remove('hidden');
+        dom.mapWrapper.classList.add('hidden', 'md:block');
+        dom.mobileToggleText.textContent = 'Térkép nézet';
+        if (typeof onReady === 'function') onReady();
+      }
+    }
+
+    // Csak fájlhúzásnál tiltjuk meg a böngésző alapértelmezett viselkedését,
+    // így a szövegmezőkbe húzott szöveg továbbra is működik.
+    function isFileDrag(e) {
+      return !!(e.dataTransfer && e.dataTransfer.types && Array.from(e.dataTransfer.types).includes('Files'));
+    }
+
+    function setupEventListeners() {
+      // Globális drag-and-drop védelem: megakadályozza, hogy a böngésző új lapon nyissa meg a fájlt
+      ['dragenter', 'dragover', 'dragleave', 'drop'].forEach((evtName) => {
+        window.addEventListener(evtName, (e) => {
+          if (!isFileDrag(e)) return;
+          e.preventDefault();
+          e.stopPropagation();
+        });
+      });
+
+      // Ha a felhasználó bárhova a térképre/ablakra ejti a GPX fájlt, akkor is betöltődjön
+      window.addEventListener('drop', (e) => {
+        if (!isFileDrag(e)) return;
+        const file = e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files[0];
+        if (file) {
+          handleUploadedFile(file);
+        }
+      });
+
+      // Drop zóna vizuális kiemelése és kattintásos tallózás
+      dom.dropZone.addEventListener('click', () => dom.gpxFileInput.click());
+
+      dom.dropZone.addEventListener('dragenter', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        dom.dropZone.classList.add('border-skyroute-500', 'bg-skyroute-50/70');
+      });
+
+      dom.dropZone.addEventListener('dragover', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        dom.dropZone.classList.add('border-skyroute-500', 'bg-skyroute-50/70');
+      });
+
+      dom.dropZone.addEventListener('dragleave', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        dom.dropZone.classList.remove('border-skyroute-500', 'bg-skyroute-50/70');
+      });
+
+      dom.dropZone.addEventListener('drop', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        dom.dropZone.classList.remove('border-skyroute-500', 'bg-skyroute-50/70');
+        const file = e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files[0];
+        if (file) {
+          handleUploadedFile(file);
+        }
+      });
+
+      dom.gpxFileInput.addEventListener('change', (e) => {
+        const file = e.target.files && e.target.files[0];
+        if (file) {
+          handleUploadedFile(file);
+        }
+        e.target.value = '';
+      });
+
+      // Banner bezárása (nyíl-függvénnyel, hogy az eseményobjektum ne kerüljön "kind" paraméternek)
+      dom.closeBannerBtn.addEventListener('click', () => hideBanner());
+
+      // Szünet hozzáadása
+      dom.addBreakBtn.addEventListener('click', () => {
+        const defaultKm = state.totalDistanceKm > 0
+          ? Math.round((state.totalDistanceKm * 0.5) * 10) / 10
+          : 15;
+        addBreak(defaultKm, 20, `Pihenő #${state.breaks.length + 1}`);
+      });
+
+      // Indulás / sebesség módosításakor azonnali frissítés gyorsítótárból
+      dom.startDateTime.addEventListener('change', () => {
+        if (state.trackPoints.length >= 2) recalculateAndRenderFromCache();
+      });
+
+      dom.avgSpeed.addEventListener('change', () => {
+        getAvgSpeed(); // érvénytelen érték javítása és visszaírása a mezőbe
+        if (state.trackPoints.length >= 2) recalculateAndRenderFromCache();
+      });
+
+      dom.sampleInterval.addEventListener('change', () => {
+        getSampleInterval(); // érvénytelen érték javítása és visszaírása a mezőbe
+        if (state.trackPoints.length >= 2) runForecastCalculation(false);
+      });
+
+      // Előrejelzés frissítése gomb (friss adatok az API-ból)
+      dom.refreshForecastBtn.addEventListener('click', () => {
+        runForecastCalculation(true);
+      });
+
+      // POI szűrőgombok
+      [dom.poiToggleShop, dom.poiToggleRestaurant, dom.poiTogglePub, dom.poiToggleSweets, dom.poiToggleWater].forEach((btn) => {
+        btn.addEventListener('click', () => {
+          const cat = btn.dataset.poiCat;
+          state.poiFilters[cat] = !state.poiFilters[cat];
+          updatePoiFilterButtonStyles();
+          renderPoisOnMap();
+        });
+      });
+
+      // POI keresési távolság váltása (500 m / 1,2 km / 3 km)
+      dom.poiRadiusSelect.addEventListener('change', (e) => {
+        const val = parseInt(e.target.value, 10);
+        if (!isNaN(val) && val > 0) {
+          state.poiRadiusMeters = val;
+          if (state.trackPoints.length >= 2) {
+            fetchPoisAlongRoute(false).catch((err) => {
+              console.error(err);
+              dom.poiLoadingBadge.classList.add('hidden');
+              dom.poiRetryBtn.classList.remove('hidden');
+              dom.poiErrorBadge.classList.remove('hidden');
+            });
+          }
+        }
+      });
+
+      dom.poiRetryBtn.addEventListener('click', () => {
+        fetchPoisAlongRoute(true).catch((err) => {
+          console.error(err);
+          dom.poiLoadingBadge.classList.add('hidden');
+          dom.poiRetryBtn.classList.remove('hidden');
+          dom.poiErrorBadge.classList.remove('hidden');
+        });
+      });
+
+      // Mobil nézet váltása
+      dom.mobileToggleBtn.addEventListener('click', () => {
+        setMobileView(state.mobileView === 'panel' ? 'map' : 'panel');
+      });
+
+      window.addEventListener('resize', () => {
+        if (!state.map) return;
+        state.map.invalidateSize();
+        if (state.pendingFit && dom.mapWrapper.offsetWidth > 0) fitRouteToView();
+      });
+    }
+
+    // --- Alkalmazás indítása ---
+    window.addEventListener('DOMContentLoaded', () => {
+      dom.startDateTime.value = getDefaultStartDateTimeString();
+      cleanupLegacyPoiCache();
+      initMap();
+      setupEventListeners();
+      renderBreaksList();
+      updatePoiFilterButtonStyles();
+    });
+  </script>
+</body>
+</html>
